@@ -1,1 +1,1 @@
-web: gunicorn backend\backend:chessapp
+web: gunicorn backend/backend:chessapp
