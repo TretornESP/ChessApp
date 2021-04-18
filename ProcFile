@@ -1,0 +1,3 @@
+set FLASK_APP=.\backend\backend.py
+set FLASK_ENV=development
+flask run
