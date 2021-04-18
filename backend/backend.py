@@ -378,8 +378,8 @@ def remove_all():
 def new():
     match = Match()
     manager.add(match)
-    white_link = "http://localhost:5000/match/"+match.get_code()+"/join/"+match.get_white()
-    black_link = "http://localhost:5000/match/"+match.get_code()+"/join/"+match.get_black()
+    white_link = "https://openchess-app.herokuapp.com/match/"+match.get_code()+"/join/"+match.get_white()
+    black_link = "https://openchess-app.herokuapp.com/match/"+match.get_code()+"/join/"+match.get_black()
     return json.dumps({"code": match.get_code(), "white": white_link, "black": black_link})
 
 @socketio.on('move')
