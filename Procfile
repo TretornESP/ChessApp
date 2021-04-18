@@ -1,1 +1,1 @@
-web: gunicorn --chdir backend backend:chessapp
+web: gunicorn --chdir backend backend:app
