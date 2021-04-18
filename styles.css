@@ -1,0 +1,110 @@
+.parent {
+  display: flex;
+}
+
+.right_side_pane {
+  background-color: #AAA;
+  flex: 1;
+  max-width: 600px
+  /* Just so it's visible */
+}
+
+.log_view {
+  overflow-y: scroll;
+  overflow-x: scroll;
+  margin-top: 80px;
+  height: 720px;
+  width: 400px;
+  resize: none; /* Remove this if you want the user to resize the textarea */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.left_side_pane {
+  width: 800px;
+  /* Grow to rest of container */
+  /* Just so it's visible */
+}
+
+.chessboard {
+    width: 800px;
+    height: 800px;
+    margin-left: 20px;
+    border: 0px solid #AAA;
+}
+
+*.unselectable {
+   -moz-user-select: none;
+   -khtml-user-select: none;
+   -webkit-user-select: none;
+
+   /*
+     Introduced in Internet Explorer 10.
+     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+   */
+   -ms-user-select: none;
+   user-select: none;
+}
+
+.actions {
+  margin-left: 20px;
+  width: 800px;
+  height: 80px;
+  background-color: #AAA;
+  border: 20px solid #AAA;
+}
+
+.buttons {
+  float: left;
+}
+
+.timer {
+  float: right;
+}
+
+.timer span {
+  font-weight: bold;
+  font-size: 30px;
+}
+
+.blinking {
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
+.black {
+    float: left;
+    width: 80px;
+    height: 80px;
+    background-color: 966F33;
+    font-size:50px;
+    text-align:center;
+    display: table-cell;
+    vertical-align:middle;
+}
+.white {
+    float: left;
+    width: 80px;
+    height: 80px;
+    background-color: #fff;
+    font-size:50px;
+    text-align:center;
+    display: table-cell;
+    vertical-align:middle;
+}
+.limit {
+    float: left;
+    width: 80px;
+    height: 80px;
+    background-color: #bbb;
+    font-size:50px;
+    text-align:center;
+    display: table-cell;
+    vertical-align:middle;
+}
