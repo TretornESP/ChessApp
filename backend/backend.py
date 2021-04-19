@@ -421,9 +421,11 @@ def disconnect():
 
 @socketio.on('handshake_ack')
 def handshake_ack(message):
-    app.logger.info("[HANDSHAKE] ack received from " + message['sid'])
     match = manager.get_match(message['match'])
+    color = match.get_color(message['player'])
     code = match.join_match(message['player'], message['sid'])
+    app.logger.info("[HANDSHAKE] ack received from " + message['sid'] + "C: " + color)
+
     if (code == 0 or code == 1):
         leave_room(request.sid)
         join_room(message['match'])
@@ -431,6 +433,7 @@ def handshake_ack(message):
         emit('unlock', {'data': coder[code]}, room=message['match'])
         emit('receive_movement', {'turn':match.get_turn(), 'data':match.get_map()}, room=message['match'])
         emit('chat', {'data': coder[code] + " CONNECTED"}, room=message['match'])
+
 @socketio.on('connect')
 def connect():
     app.logger.info("[ON] " + request.sid + " requesting to connect")
