@@ -12,12 +12,21 @@ import traceback
 
 def create_app():
     app = Flask(__name__, template_folder='templates')
-    app.logger.info("WELCOME TO THE CHESS SERVER")
-    with open(r'config.yml') as file:
-        server_config = yaml.load(file, Loader=yaml.FullLoader)
+    print("WELCOME TO THE CHESS SERVER")
+    try:
+        with open(r'config.yml') as file:
+            server_config = yaml.load(file, Loader=yaml.FullLoader)
+            print("SERVER CONFIG:")
+            print("ACTIVE:   " + server_config['active'])
+            print("HOST:     " + server_config[server_config['active']]['host'])
+            print("INTERVAL: " + str(server_config[server_config['active']]['ping_interval']))
+            print("TIMEOUT:  " + str(server_config[server_config['active']]['ping_timeout']))
+    except:
+        print("ERROR LOADING CONFIG")
+        traceback.print_exc()
     return app
 
-server_config = {'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
+server_config = {'active': 'local', 'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
 app = create_app()
 socketio = SocketIO(app, engineio_logger=True, ping_interval=server_config[server_config['active']]['ping_interval'], ping_timeout=server_config[server_config['active']]['ping_timeout'])
 matcher = {}
