@@ -26,7 +26,8 @@ def create_app():
         traceback.print_exc()
     return app
 
-server_config = {'active': 'local', 'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
+#server_config = {'active': 'local', 'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
+server_config = {}
 app = create_app()
 socketio = SocketIO(app, engineio_logger=True, ping_interval=server_config[server_config['active']]['ping_interval'], ping_timeout=server_config[server_config['active']]['ping_timeout'])
 matcher = {}
