@@ -1,1 +1,1 @@
-web: gunicorn --chdir backend backend:app
+web: gunicorn --log-level debug --chdir backend backend:app 
