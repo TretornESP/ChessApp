@@ -17,9 +17,9 @@ def create_app():
         server_config = yaml.load(file, Loader=yaml.FullLoader)
     return app
 
-server_config = {'host':'http://localhost:5000'}
+server_config = {'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
 app = create_app()
-socketio = SocketIO(app, engineio_logger=True, ping_interval=1, ping_timeout=1)
+socketio = SocketIO(app, engineio_logger=True, ping_interval=server_config[server_config['active']]['ping_interval'], ping_timeout=server_config[server_config['active']]['ping_timeout'])
 matcher = {}
 coder = ["white_team", "black_team"]
 white_crowner = {
@@ -414,7 +414,7 @@ def disconnect():
             emit('chat', {'data': match.get_color(match_code['player']) + " DISCONNECTED"}, room=match)
             app.logger.info("[DC] " + request.sid + " disconnected ok")
         else:
-            app.logger.error("[DC] ERROR")
+            app.logger.error("[DC] CODE NOT FOUND")
     except:
         app.logger.error("[DC] ERROR")
         traceback.print_exc()
