@@ -391,8 +391,8 @@ def remove_all():
 def new():
     match = Match()
     manager.add(match)
-    white_link = server_config['host'] +"/match/"+match.get_code()+"/join/"+match.get_white()
-    black_link = server_config['host'] +"/match/"+match.get_code()+"/join/"+match.get_black()
+    white_link = server_config[server_config['active']]['host'] +"/match/"+match.get_code()+"/join/"+match.get_white()
+    black_link = server_config[server_config['active']]['host'] +"/match/"+match.get_code()+"/join/"+match.get_black()
     return json.dumps({"code": match.get_code(), "white": white_link, "black": black_link})
 
 @socketio.on('move')
