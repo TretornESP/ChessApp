@@ -57,6 +57,7 @@ $(document).ready(function(){
   });
 
   socket.on('chat', function (msg, cb) {
+    console.log("CHAT RECEIVED");
     $(".log_view").val($(".log_view").val() + msg.data + "\n");
   });
 

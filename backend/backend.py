@@ -410,8 +410,8 @@ def disconnect():
         match = manager.get_match(match_code['code'])
         code = match.leave_match(match_code['player'])
         if (code == 0 or code == 1):
-            leave_room(match)
-            emit('chat', {'data': match.get_color(match_code['player']) + " DISCONNECTED"}, room=match)
+            leave_room(match_code['code'])
+            emit('chat', {'data': match.get_color(match_code['player']) + " DISCONNECTED"}, room=match_code['code'])
             app.logger.info("[DC] " + request.sid + " disconnected ok")
         else:
             app.logger.error("[DC] CODE NOT FOUND")
