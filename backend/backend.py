@@ -7,11 +7,19 @@ import time, threading, _thread
 import uuid, json, os
 import backlog
 from enum import Enum
-from sqlitedict import SqliteDict
 import traceback
+from model.dbmanager import DBManager
+
 
 def create_app():
+    global server_config, socketio, manager, matcher
+
+    server_config = {}
+    matcher = {}
+    manager = DBManager()
+
     app = Flask(__name__, template_folder='templates')
+
     print("WELCOME TO THE CHESS SERVER")
     try:
         with open(r'config.yml') as file:
@@ -21,16 +29,16 @@ def create_app():
             print("HOST:     " + server_config[server_config['active']]['host'])
             print("INTERVAL: " + str(server_config[server_config['active']]['ping_interval']))
             print("TIMEOUT:  " + str(server_config[server_config['active']]['ping_timeout']))
+            socketio = SocketIO(app, ping_interval=server_config[server_config['active']]['ping_interval'], ping_timeout=server_config[server_config['active']]['ping_timeout'])
     except:
         print("ERROR LOADING CONFIG")
         traceback.print_exc()
+        socketio = SocketIO(app)
+    app.debug=True
     return app
 
-#server_config = {'active': 'local', 'local': {'host':'http://localhost:5000', 'ping_interval': 1, 'ping_timeout': 1}}
-server_config = {}
 app = create_app()
-socketio = SocketIO(app, engineio_logger=True, ping_interval=server_config[server_config['active']]['ping_interval'], ping_timeout=server_config[server_config['active']]['ping_timeout'])
-matcher = {}
+
 coder = ["white_team", "black_team"]
 white_crowner = {
     "crown_rook": 8,
@@ -76,6 +84,7 @@ translator =  [
     {'key': "", 'team': "neutral"}
 ]
 
+
 class Move():
     def __init__(self, p, f, t):
         self.p = p
@@ -94,26 +103,7 @@ class Move():
     def invalid_move(self):
         return "invalid movement"
 
-class DBManager():
-    def __init__(self):
-        self._db = SqliteDict('./matches.sqlite', autocommit=True)
-    def add(self, match):
-        self._db[match.get_code()] = match
-    def update(self, match):
-        self.add(match)
-    def remove(self, match):
-        del self._db[match.get_code()]
-    def empty(self):
-        self._db.clear()
-    def get_match(self, code):
-        return self._db[code]
-    def get_all_matches(self):
-        list = []
-        for key, val in self._db.iteritems():
-            list.append(key)
-        return list
 
-manager = DBManager()
 
 class Player():
     def __init__(self, namespace):
