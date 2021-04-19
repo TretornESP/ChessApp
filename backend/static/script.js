@@ -56,6 +56,10 @@ $(document).ready(function(){
     socket.emit('handshake_ack', {sid: msg.data, match: code, player: player});
   });
 
+  socket.on('chat', function (msg, cb) {
+    $(".log_view").val($(".log_view").val() + msg.data + "\n");
+  });
+
   socket.on('receive_movement', function(msg, cb) {
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);

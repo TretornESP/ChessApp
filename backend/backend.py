@@ -1,21 +1,25 @@
 from flask import Flask, request, render_template, make_response, url_for
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
+import yaml
 import atexit
 import time, threading, _thread
 import uuid, json, os
 import backlog
 from enum import Enum
 from sqlitedict import SqliteDict
+import traceback
 
 def create_app():
     app = Flask(__name__, template_folder='templates')
     app.logger.info("WELCOME TO THE CHESS SERVER")
+    with open(r'config.yml') as file:
+        server_config = yaml.load(file, Loader=yaml.FullLoader)
     return app
 
+server_config = {'host':'http://localhost:5000'}
 app = create_app()
-socketio = SocketIO(app)
-
+socketio = SocketIO(app, engineio_logger=True, ping_interval=1, ping_timeout=1)
 matcher = {}
 coder = ["white_team", "black_team"]
 white_crowner = {
@@ -378,8 +382,8 @@ def remove_all():
 def new():
     match = Match()
     manager.add(match)
-    white_link = "https://openchess-app.herokuapp.com/match/"+match.get_code()+"/join/"+match.get_white()
-    black_link = "https://openchess-app.herokuapp.com/match/"+match.get_code()+"/join/"+match.get_black()
+    white_link = server_config['host'] +"/match/"+match.get_code()+"/join/"+match.get_white()
+    black_link = server_config['host'] +"/match/"+match.get_code()+"/join/"+match.get_black()
     return json.dumps({"code": match.get_code(), "white": white_link, "black": black_link})
 
 @socketio.on('move')
@@ -400,15 +404,20 @@ def test_message(message):
 
 @socketio.on('disconnect')
 def disconnect():
-    app.logger.info("[DC] " + request.sid + " disconnection request")
-    match_code = matcher[request.sid]
-    match = manager.get_match(match_code['code'])
-    code = match.leave_match(match_code['player'])
-    if (code == 0 or code == 1):
-        leave_room(match_code)
-        app.logger.info("[DC] " + request.sid + " disconnected ok")
-    else:
+    try:
+        app.logger.info("[DC] " + request.sid + " requesting disconnect")
+        match_code = matcher[request.sid]
+        match = manager.get_match(match_code['code'])
+        code = match.leave_match(match_code['player'])
+        if (code == 0 or code == 1):
+            leave_room(match)
+            emit('chat', {'data': match.get_color(match_code['player']) + " DISCONNECTED"}, room=match)
+            app.logger.info("[DC] " + request.sid + " disconnected ok")
+        else:
+            app.logger.error("[DC] ERROR")
+    except:
         app.logger.error("[DC] ERROR")
+        traceback.print_exc()
 
 @socketio.on('handshake_ack')
 def handshake_ack(message):
@@ -421,7 +430,7 @@ def handshake_ack(message):
         matcher[message['sid']] = {'code':message['match'], 'player':message['player']}
         emit('unlock', {'data': coder[code]}, room=message['match'])
         emit('receive_movement', {'turn':match.get_turn(), 'data':match.get_map()}, room=message['match'])
-
+        emit('chat', {'data': coder[code] + " CONNECTED"}, room=message['match'])
 @socketio.on('connect')
 def connect():
     app.logger.info("[ON] " + request.sid + " requesting to connect")
