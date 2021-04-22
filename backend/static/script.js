@@ -50,15 +50,25 @@ $(document).ready(function(){
      // cb();
   });
 
+  socket.on('ended', function(msg, cb) {
+    console.log('Match finished C:' + msg.cause + ' W: ' + msg.winner + ' R: ' + msg.result);
+    showModal(
+      "Partida finalizada: " + msg.result,
+      "<span>"+ending_translator[msg.cause]+"</span>",
+      false
+    );
+  });
+
   socket.on('handshake', function (msg, cb) {
     console.log('Handshake received: '+msg.data);
     sid = msg.data;
     socket.emit('handshake_ack', {sid: msg.data, match: code, player: player});
+    $(".log_view").val("");
   });
 
   socket.on('chat', function (msg, cb) {
     console.log("CHAT RECEIVED");
-    $(".log_view").val($(".log_view").val() + msg.data + "\n");
+    $(".log_view").val($(".log_view").val() + msg.data + ", ");
   });
 
   socket.on('receive_movement', function(msg, cb) {
@@ -66,11 +76,20 @@ $(document).ready(function(){
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
     //console.log(board);
-    for (i = 0; i < 64; i++) {
-      board[i] = translator[msg.data[i]-1];
+    var idx = 0;
+
+    board = [...empty_board];
+
+    for (i = 0; i < msg.data.length; i++) {
+      if (msg.data.charAt(i) === '/') {
+        continue;
+      } else if ($.isNumeric(msg.data.charAt(i))) {
+        idx += parseInt(msg.data.charAt(i));
+      } else {
+  //      console.log("AT: " + idx + " " + translator[msg.data.charAt(i)]);
+        board[idx++] = translator[msg.data.charAt(i)];
+      }
     }
-    //console.log('----------------------');
-    //console.log(board);
     generateBoard();
   });
 
@@ -82,8 +101,6 @@ $(document).ready(function(){
     }
   }, 32); //THIS CAN CAUSE A DOS!!! IMPLEMENT DoS PROTECTION ON BACKEND */
 });
-
-
 
 var br = {code: "1", key: "&#9820", team: "black_team"};
 var bh = {code: "2", key: "&#9822", team: "black_team"};
@@ -100,8 +117,21 @@ var wk = {code: "12", key: "&#9812", team: "white_team"};
 var wp = {code: "13", key: "&#9817", team: "white_team"};
 
 var z = {code: "14", key: "", team: "neutral"};
+var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición"];
+var crown_translator = {"crown_rook":4, "crown_horse":2, "crown_bishop":3, "crown_queen":5};
+var translator = {"r":br, "n":bh, "b":bb, "q":bq, "k":bk, "p":bp, "R":wr, "N":wh, "B":wb, "Q":wq, "K":wk, "P":wp}
+//var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
 
-var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
+var empty_board = [
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z,
+  z, z, z, z, z, z, z, z
+];
 
 var board = [
   br, bh, bb, bq, bk, bb, bh, br,
@@ -113,6 +143,18 @@ var board = [
   wp, wp, wp, wp, wp, wp, wp, wp,
   wr, wh, wb, wq, wk, wb, wh, wr
 ];
+
+function showModal(title, body, cancellable) {
+  $('.modal-title').text(title);
+  $('.modal-body').html(body);
+  if (cancellable) {
+    $('.modal-header').append(
+      "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Cerrar\"></button>"
+    );
+  }
+  $('#just-a-modal').modal({ backdrop: 'static' });
+  $('#just-a-modal').modal('show');
+}
 
 function attachButtons() {
   $("#report").click(function() {
@@ -129,11 +171,17 @@ function attachButtons() {
     console.log("tie clicked!");
   });
   $(".crown_btn").click(function crown() {
-      socket.emit('move', {sid: sid, match: code, player: player, from: crown_from, to: crown_to, crown: this.id});
+      console.log("CROWN ID: " + crown_translator[this.id]);
+      socket.emit('move', {sid: sid, match: code, player: player, from: translate(crown_from), to: translate(crown_to), crown: crown_translator[this.id]});
 
       $(".crowning :input").attr("disabled", true);
       $(".crowning :input").removeClass("blinking");
       disable_board = false;
+  });
+  $("#extra").click(function extra() {
+    console.log("CLIK");
+    $('#just-a-modal').modal({ backdrop: 'static' });
+    $('#just-a-modal').modal('show');
   });
 }
 
@@ -167,11 +215,11 @@ function generateBoard() {
   $( ".chessboard" ).empty();
   generateLimit();
   for (i = 0; i < 8; i++) {
-    appendLimit(i);
+    appendLimit(9-(i+1));
     for (j = 0; j < 8; j++) {
-      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].team+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
     }
-    appendLimit(i);
+    appendLimit(9-(i+1));
   }
   generateLimit();
 
@@ -228,6 +276,8 @@ function legal(down, up) {
     console.log("Selected empty!");
     return false;
   }
+  //CAMBIAME
+  /*
   if (up.hasClass(player_team)) {
     console.log("Over an ally!");
     return false;
@@ -236,6 +286,7 @@ function legal(down, up) {
     console.log("Moving an enemy");
     return false;
   }
+  */
   return true;
 }
 
@@ -243,10 +294,6 @@ function linear_to_coords(linear) {
   var row = Math.floor(linear / 8);
   var col = String.fromCharCode(65+(linear % 8));
   return col+row;
-}
-
-function log_movement(down, up) {
-  $(".log_view").val($(".log_view").val() + "[You] "+down.text() + linear_to_coords(down.attr("id")) + " -> " + linear_to_coords(up.attr("id")) + "(" + up.text() + ")\n");
 }
 
 var timer = setInterval(function() {
@@ -306,7 +353,6 @@ function mouseUp(e) {
   if (legal($("#"+id), $(e.target))) {
     console.log("LLEGA");
 
-    log_movement($("#"+id), $(e.target));
     $(e.target).text($("#"+id).text());
     $("#"+id).text(z.key);
 
@@ -329,7 +375,7 @@ function mouseUp(e) {
       crown_from = current;
       crown_to = target;
     } else {
-      socket.emit('move', {sid: sid, match: code, player: player, from: current, to: target});
+      socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
     }
   } else {
     console.log("frontend illegal");
@@ -337,6 +383,11 @@ function mouseUp(e) {
 
   $(".piece").off('mouseenter');
 
+}
+
+//You sneaky bitch
+function translate(move) {
+  return move-16*Math.floor(move/8)+56;
 }
 
 function toggleLoading(event){

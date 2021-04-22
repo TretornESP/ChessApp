@@ -4,19 +4,23 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import yaml
 import atexit
 import time, threading, _thread
-import uuid, json, os
+import json, os
 import backlog
 from enum import Enum
 import traceback
-from model.dbmanager import DBManager
 
+from model.dbmanager import DBManager
+from model.match import Match
+from model.move import Move
+from model.player import Player
 
 def create_app():
-    global server_config, socketio, manager, matcher
+    global server_config, socketio, manager, matcher, coder
 
     server_config = {}
     matcher = {}
     manager = DBManager()
+    coder = ["white_team", "black_team"]
 
     app = Flask(__name__, template_folder='templates')
 
@@ -39,300 +43,7 @@ def create_app():
 
 app = create_app()
 
-coder = ["white_team", "black_team"]
-white_crowner = {
-    "crown_rook": 8,
-    "crown_horse": 9,
-    "crown_bishop": 10,
-    "crown_queen": 11
-}
-black_crowner = {
-    "crown_rook": 1,
-    "crown_horse": 2,
-    "crown_bishop": 3,
-    "crown_queen": 4
-}
-white_turn = 0
-black_turn = 1
-br =  1
-bh =  2
-bb =  3
-bq =  4
-bk =  5
-bp =  6
-z =  7
-wr =  8
-wh =  9
-wb = 10
-wq = 11
-wk = 12
-wp = 13
 
-translator =  [
-    {'key': "&#9820", 'team': "black_team", 'clue': 'br'},
-    {'key': "&#9822", 'team': "black_team", 'clue': 'bh'},
-    {'key': "&#9821", 'team': "black_team", 'clue': 'bb'},
-    {'key': "&#9819", 'team': "black_team", 'clue': 'bq'},
-    {'key': "&#9818", 'team': "black_team", 'clue': 'bk'},
-    {'key': "&#9823", 'team': "black_team", 'clue': 'bp'},
-    {'key': "&#9814", 'team': "white_team", 'clue': 'wr'},
-    {'key': "&#9816", 'team': "white_team", 'clue': 'wh'},
-    {'key': "&#9815", 'team': "white_team", 'clue': 'wb'},
-    {'key': "&#9813", 'team': "white_team", 'clue': 'wq'},
-    {'key': "&#9812", 'team': "white_team", 'clue': 'wk'},
-    {'key': "&#9817", 'team': "white_team", 'clue': 'wp'},
-    {'key': "", 'team': "neutral"}
-]
-
-
-class Move():
-    def __init__(self, p, f, t):
-        self.p = p
-        self.f = int(f)
-        self.t = int(t)
-    def get_player(self):
-        return self.p
-    def get_from(self):
-        return self.f
-    def get_to(self):
-        return self.t
-    def set_crown(self, crown):
-        self.c = crown
-    def get_crown(self):
-        return self.c
-    def invalid_move(self):
-        return "invalid movement"
-
-
-
-class Player():
-    def __init__(self, namespace):
-        self.sid = namespace
-        self.ready = False
-    def populate(self, match, code):
-        self.match = match
-        self.code = code
-        self.ready = True
-    def is_ready(self):
-        return self.ready
-    def get_session(self):
-        return self.sid
-    def get_match(self):
-        return self.match
-    def get_code(self):
-        return self.code
-
-class Match():
-    def __init__(self):
-        self.code = str(uuid.uuid4())
-        self.white = str(uuid.uuid4())[:8]
-        self.black = str(uuid.uuid4())[:8]
-        self.white_joined = False
-        self.black_joined = False
-        self.white_sid = None
-        self.black_sid = None
-        self.white_castling_criteria = True
-        self.black_castling_criteria = True
-        self.turn = white_turn
-        self.init_board()
-    def get_white_sid(self):
-        return self.white_sid
-    def get_black_sid(self):
-        return self.black_sid
-    def get_color(self, player):
-        if player == self.black:
-            return "black"
-        else:
-            return "white"
-
-
-    #return codes:
-    #SUCCESS: 0 white joined,          1 black joined
-    #ERROR:  -1 White already joined, -2 Black Already Joined
-    #        -3 Invalid player code
-    def join_match(self, player, sid):
-        if player == self.white:
-            if self.white_joined == False:
-                self.white_sid = sid
-                self.white_joined = True
-                return 0
-            else:
-                return -1
-        elif player == self.black:
-            if self.black_joined == False:
-                self.black_sid = sid
-                self.black_joined = True
-                return 1
-            else:
-                return -2
-        return -3
-
-    #return codes:
-    #SUCCESS: 0 Black left, 1 White left
-    #ERROR:  -1 Invalid player code
-    def leave_match(self, player):
-        if player == self.white:
-            self.white_sid = None
-            self.white_joined = False
-            return 0
-        elif player == self.black:
-            self.black_sid = None
-            self.black_joined = False
-            return 1
-        return -1
-
-    def init_board(self):
-        self.map = [
-          br, bh, bb, bq, bk, bb, bh, br,
-          bp, bp, bp, bp, bp, bp, bp, bp,
-          z,z,z,z,z,z,z,z,
-          z,z,z,z,z,z,z,z,
-          z,z,z,z,z,z,z,z,
-          z,z,z,z,z,z,z,z,
-          wp, wp, wp, wp, wp, wp, wp, wp,
-          wr, wh, wb, wq, wk, wb, wh, wr
-        ]
-
-#CHECKS IF ANYONE CAN CROWN
-#RETURN 0 No one crowns, 1 White can crown, 2 Black can crown
-    def check_crown(self, move):
-        if self.map[move.get_from()] == wp:
-            if 0 <= move.get_to() <= 7:
-                return 1
-            return 0
-        if self.map[move.get_from()] == bp:
-            if 56 <= move.get_to() <= 63:
-                return 2
-            return 0
-        return 0
-
-#CHECKS IF SOMEONE IS CASTLING AND IF IT IS VALID
-#WE ONLY CHECK FOR THE PIECES BEING IN PLACE, NOT FOR PREVIOUS MOVES NOR KING CHECKS
-#RETURN: SUCCESS: 0 No one castles, 1 Whites are and can castle, 2 Blacks are and can castle
-#        ERROR:  -1 Whites are castling but cannot, -2 Blacks are castling but cannot
-#
-    def check_castling(self, move):
-        if (abs(move.get_from() - move.get_to()) == 2):
-            if (self.map[move.get_from()] == wk):
-                #Whites are trying to castle
-                app.logger.info("Whites are trying to castle")
-                if self.white_castling_criteria:
-                    #Whites have never moved king
-                    app.logger.info("Whites have never moved king")
-                    if move.get_from() == 60 and move.get_to() == 62 and self.map[60] == wk:
-                        #Whites castling on kings flank
-                        app.logger.info("Whites castling on kings flank")
-                        if (self.map[62] == z and self.map[61] == z and self.map[63] == wr):
-                            app.logger.info("Whites castled")
-                            self.map[63] = z
-                            self.map[61] = wr
-                            self.white_castling_criteria = False
-                            return 1
-                        else:
-                            return -1
-                    if move.get_from() == 60 and move.get_to() == 58 and self.map[60] == wk:
-                        #Whites castling on queens flank
-                        app.logger.info("Whites castling on queens flank")
-                        if (self.map[59] == z and self.map[58] == z and self.map[57] == z and self.map[56] == wr):
-                            app.logger.info("Whites castled")
-                            self.map[56] = z
-                            self.map[59] = wr
-                            self.white_castling_criteria = False
-                            return 1
-                        else:
-                            return -1
-                else:
-                    return -1
-            elif (self.map[move.get_from()] == bk):
-                #Blacks are trying to castle
-                app.logger.info("Blacks are trying to castle")
-                if self.black_castling_criteria:
-                    #Blacks have never moved king
-                    app.logger.info("Blacks have never moved king")
-                    if move.get_from() == 4 and move.get_to() == 6 and self.map[4] == bk:
-                        #Blacks castling on kings flank
-                        app.logger.info("Blacks castling on kings flank")
-                        if (self.map[5] == z and self.map[6] == z and self.map[7] == br):
-                            app.logger.info("Blacks castled")
-                            self.map[7] = z
-                            self.map[5] = br
-                            self.black_castling_criteria = False
-                            return 2
-                        else:
-                            return -2
-                    if move.get_from() == 4 and move.get_to() == 1 and self.map[4] == bk:
-                        #Blacks castling on queens flank
-                        app.logger.info("Blacks castling on queens flank")
-                        if (self.map[3] == z and self.map[2] == z and self.map[1] == z and self.map[0] == br):
-                            app.logger.info("Blacks castled")
-                            self.map[0] = z
-                            self.map[3] = br
-                            self.black_castling_criteria = False
-                            return 2
-                        else:
-                            return -2
-            else:
-                return 0
-
-    def check_piece(self, move):
-        if move.get_player()==self.white:
-            if self.turn == white_turn:
-                if self.map[move.get_from()] > z:
-                    return 1
-        elif move.get_player()==self.black:
-            if self.turn == black_turn:
-                if self.map[move.get_from()] < z:
-                    return 1
-        return 0
-
-
-#CHECKS MOVEMENT INNUENDOS
-#0 Move is invalid
-#1 Move is valid
-#2 Move is castling
-#3 Move is white crown
-#4 Move is black crown
-
-    def check_move(self, move):
-        if self.check_piece(move) == 0:
-            return 0
-        castling = self.check_castling(move)
-        if (castling == 1 or castling == 2):
-            return 2
-        if self.check_crown(move) == 1:
-            return 3
-        if self.check_crown(move) == 2:
-            return 4
-        return 1
-
-    def get_code(self):
-        return self.code
-    def get_white(self):
-        return self.white
-    def get_black(self):
-        return self.black
-    def make_move(self, move):
-        code = self.check_move(move)
-        if code > 0:
-            app.logger.info('['+str(self.code)+'] ' + str(self.turn) + ' moving C:' + str(code))
-            if code == 3:
-                self.map[move.get_to()] = white_crowner[move.get_crown()]
-            elif code == 4:
-                self.map[move.get_to()] = black_crowner[move.get_crown()]
-            else:
-                self.map[move.get_to()] = self.map[move.get_from()]
-            self.map[move.get_from()] = z
-            self.turn = (1 - self.turn)
-            return code
-        else:
-            app.logger.info('invalid movement, code: ' + str(code))
-            return move.invalid_move()
-    def get_map(self):
-        return self.map
-    def get_turn(self):
-        return self.turn;
-    def as_json(self):
-        return {"code": self.code, "white": self.white, "black": self.black, "turn":self.turn, "map":self.map}
 
 @app.route('/match/<code>/join/<player>')
 def join_match(code, player):
@@ -355,15 +66,6 @@ def get_board(code):
         return json.dumps(match.get_map())
     except KeyError:
         return "unknown"
-
-
-#@app.route('/match/<code>/move/')
-#def move(code):
-#    move = Move(request.args.get('player'), request.args.get('from'), request.args.get('to'))
-#    match = manager.get_match(code)
-#    response = match.make_move(move)
-#    manager.update(match)
-#    return response
 
 @app.route('/admin/match/<code>')
 def see_match(code):
@@ -388,15 +90,27 @@ def new():
 
 @socketio.on('move')
 def move_socket(message):
-    move = Move(message['player'], message['from'], message['to'])
-    try:
-        move.set_crown(message['crown'])
-    except KeyError:
-        pass
     match = manager.get_match(message['match'])
-    response = match.make_move(move)
-    manager.update(match)
+    if match.valid_turn(message['player']):
+        try:
+            move = Move(message['player'], message['from'], message['to'], message['crown'])
+        except KeyError:
+            move = Move(message['player'], message['from'], message['to'])
+
+            response = match.make_move(move)
+            manager.update(match)
+            if response != None:
+                app.logger.info("SENDING MOVE INFO")
+                emit('chat', {'data': response}, room=message['match'])
+
+    else:
+        app.logger.info("Bad turn!")
     emit('receive_movement', {'turn':match.get_turn(), 'data':match.get_map()}, room=message['match'])
+
+    out = match.get_outcome()
+    if out != None:
+        app.logger.info("[END] M: " + message['match'] + " C: " + str(out.termination) + " W: " +str(out.winner) + " R: " + out.result())
+        emit('ended', {'cause': out.termination.value, 'winner': out.winner, 'result': out.result()}, room=message['match'])
 
 @socketio.on('my_event')
 def test_message(message):
@@ -427,6 +141,11 @@ def handshake_ack(message):
     app.logger.info("[HANDSHAKE] ack received from " + message['sid'] + "C: " + color)
 
     if (code == 0 or code == 1):
+        match = manager.get_match(message['match'])
+        emit('chat', {'data': match.get_stack_as_string()}, room=request.sid)
+        out = match.get_outcome()
+        if out != None:
+            emit('ended', {'cause': out.termination.value, 'winner': out.winner, 'result': out.result()}, room=request.sid)
         leave_room(request.sid)
         join_room(message['match'])
         matcher[message['sid']] = {'code':message['match'], 'player':message['player']}
@@ -440,10 +159,3 @@ def connect():
     join_room(request.sid)
     emit('handshake', {'data': request.sid}, room=request.sid)
     app.logger.info("[HANDSHAKE] sent to "+request.sid)
-
-
-#@socketio.on('update_me')
-#def keep_alive(message):
-#    #print(message['sid'] + " SENT KEEPALIVE")
-#    match = manager.get_match(message['match'])
-#    emit('receive_movement', {'data': match.get_map(), 'turn': match.get_turn(), 'time': (time.time() * 1000)}, room=message['sid'])
