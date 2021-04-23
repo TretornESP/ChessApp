@@ -92,25 +92,42 @@ def new():
 def move_socket(message):
     match = manager.get_match(message['match'])
     if match.valid_turn(message['player']):
+        if not match.timer_alive():
+            if match.match_start():
+                app.logger.info("MATCH "+ message['match'] +" STARTED!!!!")
+            else:
+                if not match.white_has_joined():
+                    app.logger.info("WHITE HASNT JOINED")
+                if not match.black_has_joined():
+                    app.logger.info("BLACK HASNT JOINED")
+                app.logger.info("WAITING FOR ONE PLAYER TO START THE MATCH")
+                emit('receive_movement', match.pack_data(), room=message['match'])
+                return
         try:
             move = Move(message['player'], message['from'], message['to'], message['crown'])
         except KeyError:
             move = Move(message['player'], message['from'], message['to'])
-
-            response = match.make_move(move)
-            manager.update(match)
-            if response != None:
-                app.logger.info("SENDING MOVE INFO")
-                emit('chat', {'data': response}, room=message['match'])
-
+        response = match.make_move(move)
+        manager.update(match)
+        if response != None:
+            emit('chat', {'data': response}, room=message['match'])
+        else:
+            app.logger.info("RESPONSE WAS NONE")
+#        except:
+#            app.logger.error("[MOVE] ERROR")
+#            traceback.print_exc()
     else:
         app.logger.info("Bad turn!")
-    emit('receive_movement', {'turn':match.get_turn(), 'data':match.get_map()}, room=message['match'])
-
+    emit('receive_movement', match.pack_data(), room=message['match'])
     out = match.get_outcome()
     if out != None:
         app.logger.info("[END] M: " + message['match'] + " C: " + str(out.termination) + " W: " +str(out.winner) + " R: " + out.result())
         emit('ended', {'cause': out.termination.value, 'winner': out.winner, 'result': out.result()}, room=message['match'])
+    if match.match_end_time() != 0:
+        if match.match_end_time() == 1:
+            emit('ended', {'cause': 8, 'winner': False, 'result': "0-1"}, room=message['match'])
+        elif match.match_end_time() == 2:
+            emit('ended', {'cause': 9, 'winner': True, 'result': "1-0"}, room=message['match'])
 
 @socketio.on('my_event')
 def test_message(message):
@@ -126,12 +143,28 @@ def disconnect():
         if (code == 0 or code == 1):
             leave_room(match_code['code'])
             emit('chat', {'data': match.get_color(match_code['player']) + " DISCONNECTED"}, room=match_code['code'])
-            app.logger.info("[DC] " + request.sid + " disconnected ok")
+            app.logger.info("[DC] " + match.get_color(match_code['player']) + " " +  request.sid + " disconnected ok")
+            manager.update(match)
         else:
             app.logger.error("[DC] CODE NOT FOUND")
     except:
         app.logger.error("[DC] ERROR")
         traceback.print_exc()
+
+@socketio.on('times_up')
+def time_up(message):
+    match = manager.get_match(message['match'])
+    app.logger.info(message['match'] + " " + match.get_color(message['player']) + " TIME UP!")
+
+    if match.match_end_time() == 1:
+        print("INDEED WHITE OUT OF TIME")
+        emit('ended', {'cause': 8, 'winner': False, 'result': "0-1"}, room=message['match'])
+    elif match.match_end_time() == 2:
+        print("INDEED BLACK OUT OF TIME")
+        emit('ended', {'cause': 9, 'winner': True, 'result': "1-0"}, room=message['match'])
+    else:
+        print("FALSE ALARM")
+        emit('receive_movement', match.pack_data(), room=message['match'])
 
 @socketio.on('handshake_ack')
 def handshake_ack(message):
@@ -149,9 +182,16 @@ def handshake_ack(message):
         leave_room(request.sid)
         join_room(message['match'])
         matcher[message['sid']] = {'code':message['match'], 'player':message['player']}
+
         emit('unlock', {'data': coder[code]}, room=message['match'])
-        emit('receive_movement', {'turn':match.get_turn(), 'data':match.get_map()}, room=message['match'])
+        emit('receive_movement', match.pack_data(), room=message['match'])
         emit('chat', {'data': coder[code] + " CONNECTED"}, room=message['match'])
+        manager.update(match)
+
+        app.logger.info("PLAYER " + match.get_color(message['player']) + " JOINED OKAY")
+
+    else:
+        app.logger.info("ERROR JOINING: INVALID PLAYER CODE")
 
 @socketio.on('connect')
 def connect():

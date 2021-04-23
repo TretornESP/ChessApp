@@ -1,3 +1,6 @@
+//MODIFY THIS GIVEN THE CHESSBOARD SIZE, DEFAULT 800px
+var PIECE_SIZE_OFFSET = 30;
+
 var dirty;
 var socket;
 var sid;
@@ -10,6 +13,7 @@ var player;
 var turn;
 var disable_board = false;
 var crown = "none"
+var timer_active = false;
 
 $(document).ready(function(){
   $(".crowning :input").attr("disabled", true);
@@ -20,6 +24,10 @@ $(document).ready(function(){
   window.addEventListener('beforeunload', function (e) {
       e.preventDefault();
       e.returnValue = '';
+  });
+
+  $( window ).resize(function() {
+    generateBoard();
   });
 
   socket = io();
@@ -71,7 +79,15 @@ $(document).ready(function(){
     $(".log_view").val($(".log_view").val() + msg.data + ", ");
   });
 
+  socket.on('start_timer', function(msg, cb) {
+    timer_active = true;
+  });
+
   socket.on('receive_movement', function(msg, cb) {
+    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
+    if (msg.start_timer) {
+      timer_active = true;
+    }
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
@@ -91,15 +107,49 @@ $(document).ready(function(){
       }
     }
     generateBoard();
+    showTime(msg.whites_timer, msg.blacks_timer);
   });
 
-/*  setInterval(() => {
-    if (nasty > 0) {
-      nasty--;
+  setInterval(() => {
+    if (!timer_active) return;
+    var m, s, minutes, seconds;
+
+    if (turn) {
+      m = $(".whites-minutes");
+      s = $(".whites-seconds");
     } else {
-      socket.emit('update_me', {sid: sid, match: code, player: player});
+      m = $(".blacks-minutes");
+      s = $(".blacks-seconds");
     }
-  }, 32); //THIS CAN CAUSE A DOS!!! IMPLEMENT DoS PROTECTION ON BACKEND */
+
+    minutes = parseInt(m.text());
+    seconds = parseInt(s.text());
+
+    seconds--;
+
+    if ((seconds+minutes) <= 0) {
+      console.log("TIMES UP!!");
+      socket.emit('times_up', {sid: sid, match: code, player: player});
+    }
+
+    if (seconds <= 0) {
+      minutes--;
+      if (minutes <= 0) {
+        console.log("TIMES UP!!");
+        socket.emit('times_up', {sid: sid, match: code, player: player});
+        m.text("0");
+        s.text("0");
+        timer_active = false;
+      } else {
+      seconds = 59;
+      }
+    }
+
+
+    m.text(minutes.toString());
+    s.text(seconds.toString());
+
+  }, 1000);
 });
 
 var br = {code: "1", key: "&#9820", team: "black_team"};
@@ -117,7 +167,7 @@ var wk = {code: "12", key: "&#9812", team: "white_team"};
 var wp = {code: "13", key: "&#9817", team: "white_team"};
 
 var z = {code: "14", key: "", team: "neutral"};
-var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición"];
+var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición", "blancas sin timepo", "negras sin tiempo"];
 var crown_translator = {"crown_rook":4, "crown_horse":2, "crown_bishop":3, "crown_queen":5};
 var translator = {"r":br, "n":bh, "b":bb, "q":bq, "k":bk, "p":bp, "R":wr, "N":wh, "B":wb, "Q":wq, "K":wk, "P":wp}
 //var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
@@ -143,6 +193,18 @@ var board = [
   wp, wp, wp, wp, wp, wp, wp, wp,
   wr, wh, wb, wq, wk, wb, wh, wr
 ];
+
+function showTime(white, black) {
+  var wminutes = Math.floor(white / 60);
+  var wseconds = white - wminutes * 60;
+  var bminutes = Math.floor(black / 60);
+  var bseconds = black - bminutes * 60;
+
+  $(".whites-minutes").text(wminutes);
+  $(".whites-seconds").text(wseconds);
+  $(".blacks-minutes").text(bminutes);
+  $(".blacks-seconds").text(bseconds);
+}
 
 function showModal(title, body, cancellable) {
   $('.modal-title').text(title);
@@ -206,13 +268,15 @@ function appendLimit(input) {
 function generateLimit() {
   appendLimit("");
   for (i = 0; i < 8; i++) {
-      appendLimit(String.fromCharCode(65+i));
+      appendLimit(String.fromCharCode(97+i));
   }
   appendLimit("");
 }
 
 function generateBoard() {
   $( ".chessboard" ).empty();
+  $( ".chessboard" ).css('width', $( ".chessboard" ).height());
+  console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
   for (i = 0; i < 8; i++) {
     appendLimit(9-(i+1));
@@ -225,6 +289,8 @@ function generateBoard() {
 
   $(".piece").mousedown(mouseDown);
   $(".piece").mouseup(mouseUp);
+  var volume = parseInt($(".chessboard").height());
+  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10)-PIECE_SIZE_OFFSET + "px");
 }
 var id;
 

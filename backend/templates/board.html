@@ -26,33 +26,40 @@
     </div>
   </div>
   <div class="parent content">
-    <div class="left_side_pane">
-      <div class="actions">
-        <div class="buttons">
-          <button id="report" type="button" class="btn btn-danger">Reportar Ilegal!</button>
-          <button id="call" type="button" class="btn btn-warning">Solicitar arbitro</button>
-          <button id="end" type="button" class="btn btn-success">Finalizar partida</button>
-          <button id="tie" type="button" class="btn btn-secondary">Ofrecer Tablas</button>
-          <button id="extra" type="button" class="btn btn-secondary">DEMO</button>
-
-        </div>
-        <div class="timer">
-          <span class="minutes">4</span>
-          <span class="blinking">:</span>
-          <span class="seconds">30</span>
-        </div>
+    <div class="heading">
+      <h1> OpenChess board </h1>
+    </div>
+    <div class="clock">
+      <span class="white-dot"></span>
+      <div class="left whites-timer">
+        <span class="whites-minutes">4</span>
+        <span class="whites-blinking">:</span>
+        <span class="whites-seconds">30</span>
       </div>
-      <div class="unselectable chessboard"></div>
-      <div class="crowning">
-        <button id="crown_rook" type="button" class="crown_btn btn rounded">&#9820;</button>
-        <button id="crown_horse" type="button" class="crown_btn btn rounded">&#9822;</button>
-        <button id="crown_bishop" type="button" class="crown_btn btn rounded">&#9821;</button>
-        <button id="crown_queen" type="button" class="crown_btn btn rounded">&#9819;</button>
+      <span class="black-dot"></span>
+      <div class="right blacks-timer">
+        <span class="blacks-minutes">4</span>
+        <span class="blacks-blinking">:</span>
+        <span class="blacks-seconds">30</span>
       </div>
     </div>
-    <div class="right_side_pane">
-      <textarea class="log_view" name="w3review"></textarea>
+    <div class="unselectable chessboard"></div>
+    <div class="crowning">
+      <button id="crown_rook" type="button" class=" button crown_btn btn rounded">&#9820;</button>
+      <button id="crown_horse" type="button" class="button crown_btn btn rounded">&#9822;</button>
+      <button id="crown_bishop" type="button" class="button crown_btn btn rounded">&#9821;</button>
+      <button id="crown_queen" type="button" class="button crown_btn btn rounded">&#9819;</button>
     </div>
-  </div>
+    <div class="actions">
+      <div class="buttons">
+        <button id="report" type="button" class="btn btn-danger">Reportar Ilegal!</button>
+        <button id="call" type="button" class="btn btn-warning">Solicitar arbitro</button>
+        <button id="end" type="button" class="btn btn-success">Finalizar partida</button>
+        <button id="tie" type="button" class="btn btn-secondary">Ofrecer Tablas</button>
+        <button id="extra" type="button" class="btn btn-secondary">DEMO</button>
+      </div>
+    </div>
+    <textarea class="log_view" name="w3review"></textarea>
+    </div>
 </body>
 </html>

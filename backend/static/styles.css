@@ -1,56 +1,39 @@
-.parent {
-  display: flex;
-}
-
-.right_side_pane {
-  background-color: #AAA;
-  flex: 1;
-  max-width: 600px
-  /* Just so it's visible */
-}
-
 .log_view {
   overflow-y: scroll;
   overflow-x: scroll;
-  margin-top: 80px;
-  height: 720px;
-  width: 400px;
+  width: 100%;
+  height: 20%;
   resize: none; /* Remove this if you want the user to resize the textarea */
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
 }
 
-.left_side_pane {
-  width: 800px;
-  /* Grow to rest of container */
-  /* Just so it's visible */
+.heading {
+  width: 100%;
+  height: 10%;
 }
 
 .chessboard {
-    width: 800px;
-    height: 800px;
-    margin-left: 20px;
-    border: 0px solid #AAA;
+  display: inline-block;
+  height: 60%;
+  border: 0px solid #AAA;
+  background-color: #AAA;
+}
+
+.parent {
+  text-align: center;
+  background-color: #BBB;
 }
 
 *.unselectable {
    -moz-user-select: none;
    -khtml-user-select: none;
    -webkit-user-select: none;
-
-   /*
-     Introduced in Internet Explorer 10.
-     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
-   */
    -ms-user-select: none;
    user-select: none;
 }
 
 .actions {
-  margin-left: 20px;
-  width: 800px;
-  height: 80px;
+  width: 100%;
+  height: 5%;
   background-color: #AAA;
   border: 20px solid #AAA;
 }
@@ -62,22 +45,35 @@
 }
 
 .crowning {
-  margin-left: 20px;
-  width: 800px;
-  height: 160px;
+  text-align: center;
+  width: 100%;
+  height: 10%;
   background-color: #AAA;
   border: 20px solid #AAA;
 }
 
 .buttons {
-  float: left;
+  text-align: center;
 }
 
-.timer {
-  float: right;
+.button {
+  display: inline-block;
+  vertical-align: middle;
 }
 
-.timer span {
+.left, .right {
+     display: inline-block;
+     padding: 2%;
+}
+
+.clock {
+  background-color: #AAA;
+  text-align: center;
+  height: 8%;
+  width: 100%;
+}
+
+.clock span {
   font-weight: bold;
   font-size: 30px;
 }
@@ -92,32 +88,51 @@
   }
 }
 
+.white-dot {
+  display: inline-block;
+  height: 25px;
+  width: 25px;
+  background-color: #FFF;
+  border-radius: 50%;
+}
+
+.black-dot {
+  display: inline-block;
+  height: 25px;
+  width: 25px;
+  background-color: #000;
+  border-radius: 50%;
+}
+
 .black {
+    position: relative;
     float: left;
-    width: 80px;
-    height: 80px;
+    width: 10%;
+    height: 10%;
     background-color: 966F33;
-    font-size:50px;
+    font-size:5rem;
     text-align:center;
     display: table-cell;
     vertical-align:middle;
 }
 .white {
+    position: relative;
     float: left;
-    width: 80px;
-    height: 80px;
+    width: 10%;
+    height: 10%;
     background-color: #fff;
-    font-size:50px;
+    font-size:5rem;
     text-align:center;
     display: table-cell;
     vertical-align:middle;
 }
 .limit {
+    position: relative;
     float: left;
-    width: 80px;
-    height: 80px;
+    width: 10%;
+    height: 10%;
     background-color: #bbb;
-    font-size:50px;
+    font-size:5rem;
     text-align:center;
     display: table-cell;
     vertical-align:middle;
@@ -134,158 +149,4 @@ div.loading{
   width: 100%;
   height: 100%;
   background-color: rgba(16, 16, 16, 0.5);
-}
-
-@-webkit-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-webkit-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-moz-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-ms-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-moz-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-webkit-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@-o-keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@keyframes uil-ring-anim {
-  0% {
-    -ms-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -webkit-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -ms-transform: rotate(360deg);
-    -moz-transform: rotate(360deg);
-    -webkit-transform: rotate(360deg);
-    -o-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-.uil-ring-css {
-  margin: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  width: 200px;
-  height: 200px;
-}
-.uil-ring-css > div {
-  position: absolute;
-  display: block;
-  width: 160px;
-  height: 160px;
-  top: 20px;
-  left: 20px;
-  border-radius: 80px;
-  box-shadow: 0 6px 0 0 #ffffff;
-  -ms-animation: uil-ring-anim 1s linear infinite;
-  -moz-animation: uil-ring-anim 1s linear infinite;
-  -webkit-animation: uil-ring-anim 1s linear infinite;
-  -o-animation: uil-ring-anim 1s linear infinite;
-  animation: uil-ring-anim 1s linear infinite;
 }

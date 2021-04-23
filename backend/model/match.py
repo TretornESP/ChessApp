@@ -1,5 +1,7 @@
 import chess
 import uuid
+from threading import Timer
+import threading
 #
 #white_crowner = {
 #    "crown_rook": 8,
@@ -47,7 +49,7 @@ import uuid
 #]
 
 class Match():
-    def __init__(self):
+    def __init__(self, white_time=20, black_time=20, map=chess.Board()):
         self.code = str(uuid.uuid4())
         self.white = str(uuid.uuid4())[:8]
         self.black = str(uuid.uuid4())[:8]
@@ -55,7 +57,47 @@ class Match():
         self.black_joined = False
         self.white_sid = None
         self.black_sid = None
-        self.init_board()
+        self.white_time = white_time
+        self.black_time = black_time
+        self.map = map
+        self.timer = threading.Timer(1, self.time)
+        self.kill = False
+
+    #Timer tiene un lock implicito y no puede ser guardado!!
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['timer']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.timer = threading.Timer(1, self.time)
+
+    def match_start(self):
+        print(self.white_joined, self.black_joined)
+        if self.white_joined and self.black_joined:
+            self.start_timer()
+            return True
+        return False
+    def white_has_joined(self):
+        return self.white_joined
+    def black_has_joined(self):
+        return self.black_joined
+    def match_pause(self):
+        self.started = False
+
+    #Check if time has run out
+    #RETURN: 1 Whites have no time
+    # 2: blacks have no time
+    # 0: Everyone has time
+    def match_end_time(self):
+        if self.black_time == 0:
+            self.started = False
+            return 2
+        if self.white_time == 0:
+            self.started = False
+            return 1
+        return 0
     def get_white_sid(self):
         return self.white_sid
     def get_black_sid(self):
@@ -69,20 +111,35 @@ class Match():
     def get_map(self):
         return self.map.board_fen()
     def get_turn(self):
-        return self.map.turn;
+        return self.map.turn
     def get_stack(self):
         return self.map.move_stack
     def get_outcome(self):
         return self.map.outcome()
     def get_outcome_draw(self):
         return self.map.outcome(True)
+    def get_white_time(self):
+        return self.white_time
+    def get_black_time(self):
+        return self.black_time
+    def timer_alive(self):
+        return self.timer.is_alive()
+    def start_timer(self):
+        self.kill = False
+        self.time()
+    def stop_timer(self):
+        self.kill = True
+        self.timer.stop()
+    def pack_data(self):
+        print("WT: " + str(self.white_time))
+        print("BT: " + str(self.black_time))
+        return {'turn':self.map.turn, 'data':self.map.board_fen(), 'whites_timer':self.white_time, 'blacks_timer':self.black_time, 'start_timer': self.timer_alive()}
     def get_stack_as_string(self):
         #This is way faster
         list = []
         for m in self.map.move_stack:
             list.append(m.uci())
         return ', '.join(list)
-
     def as_json(self):
         return {"code": self.code, "white": self.white, "black": self.black, "turn":self.turn, "map":self.map.board_fen()}
     def get_color(self, player):
@@ -97,6 +154,15 @@ class Match():
             return not self.map.turn
         else:
             return False
+    def crowning(self, to):
+        if self.map.piece_at(to).piece_type==chess.PAWN:
+            if self.map.turn:
+                if chess.square_rank(to)==8:
+                    return True
+            else:
+                if chess.square_rank(to)==1:
+                    return True
+        return False
 
     #return codes:
     #SUCCESS: 0 white joined,          1 black joined
@@ -104,19 +170,13 @@ class Match():
     #        -3 Invalid player code
     def join_match(self, player, sid):
         if player == self.white:
-            if self.white_joined == False:
-                self.white_sid = sid
-                self.white_joined = True
-                return 0
-            else:
-                return -1
+            self.white_sid = sid
+            self.white_joined = True
+            return 0
         elif player == self.black:
-            if self.black_joined == False:
-                self.black_sid = sid
-                self.black_joined = True
-                return 1
-            else:
-                return -2
+            self.black_sid = sid
+            self.black_joined = True
+            return 1
         return -3
 
     #return codes:
@@ -125,17 +185,32 @@ class Match():
     def leave_match(self, player):
         if player == self.white:
             self.white_sid = None
-            self.white_joined = False
+            print("WHITE CUAK")
+#            self.white_joined = False #Uncomment this to be kind
             return 0
         elif player == self.black:
             self.black_sid = None
-            self.black_joined = False
+            print("BLACK CUAK")
+#            self.black_joined = False
             return 1
         return -1
 
     def init_board(self):
         self.map = chess.Board()
 
+    def time(self):
+        if self.kill == False:
+            self.timer = threading.Timer(1, self.time)
+            self.timer.start()
+        print("TICK TACK")
+        if self.map.turn:
+            self.white_time -= 1
+            if self.white_time <= 0:
+                self.kill = True
+        else:
+            self.black_time -=1
+            if self.black_time <= 0:
+                self.kill = True
 
     def make_move(self, move):
         chess_move = move.get_move()
@@ -153,6 +228,7 @@ class Match():
             else:
                 print('illegal movement by blacks')
             return None
+
 
 #        if code > 0:
 #            app.logger.info('['+str(self.code)+'] ' + str(self.turn) + ' moving C:' + str(code))
