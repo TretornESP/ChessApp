@@ -49,7 +49,7 @@ import threading
 #]
 
 class Match():
-    def __init__(self, white_time=20, black_time=20, map=chess.Board()):
+    def __init__(self, white_time=300, black_time=300, map=chess.Board()):
         self.code = str(uuid.uuid4())
         self.white = str(uuid.uuid4())[:8]
         self.black = str(uuid.uuid4())[:8]
