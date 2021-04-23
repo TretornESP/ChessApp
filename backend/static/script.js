@@ -30,7 +30,8 @@ $(document).ready(function(){
     generateBoard();
   });
 
-  socket = io();
+  console.log("URL: " + window.location.host);
+  socket = io(window.location.host);
 
   socket.on('connect', function() {
     socket.emit('my_event', {match: code, player: player, data: "Connected"});

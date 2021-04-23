@@ -1,4 +1,4 @@
-active: 'local'
+active: 'heroku'
 local:
   host: http://localhost:5000
   ping_interval: 40
@@ -7,3 +7,7 @@ heroku:
   host: https://openchess-app.herokuapp.com
   ping_interval: 200
   ping_timeout: 200
+lan:
+  host: http://192.168.1.128:5000
+  ping_interval: 40
+  ping_timeout: 40
