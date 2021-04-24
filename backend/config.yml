@@ -1,4 +1,4 @@
-active: 'local'
+active: 'vps'
 local:
   host: http://localhost:5000
   ping_interval: 40
@@ -9,5 +9,9 @@ heroku:
   ping_timeout: 200
 lan:
   host: http://192.168.1.128:5000
+  ping_interval: 40
+  ping_timeout: 40
+vps:
+  host: http://tretornesp.com:5000
   ping_interval: 40
   ping_timeout: 40
