@@ -131,8 +131,6 @@ class Match():
         self.kill = True
         self.timer.stop()
     def pack_data(self):
-        print("WT: " + str(self.white_time))
-        print("BT: " + str(self.black_time))
         return {'turn':self.map.turn, 'data':self.map.board_fen(), 'whites_timer':self.white_time, 'blacks_timer':self.black_time, 'start_timer': self.timer_alive()}
     def get_stack_as_string(self):
         #This is way faster
@@ -202,7 +200,6 @@ class Match():
         if self.kill == False:
             self.timer = threading.Timer(1, self.time)
             self.timer.start()
-        print("TICK TACK")
         if self.map.turn:
             self.white_time -= 1
             if self.white_time <= 0:

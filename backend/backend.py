@@ -112,7 +112,7 @@ def move_socket(message):
         if response != None:
             emit('chat', {'data': response}, room=message['match'])
         else:
-            app.logger.info("RESPONSE WAS NONE")
+            app.logger.info("RESPONSE WAS NONE: " + move.uci())
 #        except:
 #            app.logger.error("[MOVE] ERROR")
 #            traceback.print_exc()
