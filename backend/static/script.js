@@ -279,14 +279,27 @@ function generateBoard() {
   $( ".chessboard" ).css('width', $( ".chessboard" ).height());
   console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
-  for (i = 0; i < 8; i++) {
-    appendLimit(9-(i+1));
-    for (j = 0; j < 8; j++) {
-      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+
+  if (player_team === "white_team") {
+    for (i = 0; i < 8; i++) {
+      appendLimit(9-(i+1));
+      for (j = 0; j < 8; j++) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      }
+      appendLimit(9-(i+1));
     }
-    appendLimit(9-(i+1));
+    generateLimit();
+  } else {
+    for (i = 7; i >= 0; i--) {
+      appendLimit(9-(i+1));
+      for (j = 0; j < 8; j++) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      }
+      appendLimit(9-(i+1));
+    }
+    generateLimit();
   }
-  generateLimit();
+
 
   $(".piece").mousedown(mouseDown);
   $(".piece").mouseup(mouseUp);
