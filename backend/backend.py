@@ -196,13 +196,53 @@ def time_up(message):
 
 @socketio.on('prev-play')
 def prev_play(message):
-    app.logger.info("POP PLAY")
+    app.logger.info( message['match'] + " POP PLAY")
     match = manager.get_match(message['match'])
     response = match.pop()
     manager.update(match)
     emit('receive_movement', match.pack_data(), room=message['match'])
-
     return response
+
+@socketio.on('reset-board')
+def reset_board(message):
+    app.logger.info( message['match'] + " RESET BOARD")
+    match = manager.get_match(message['match'])
+    match.reset_match()
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
+
+@socketio.on('start-timer')
+def start_time(message):
+    app.logger.info( message['match'] + " START TIME" + str(message['code']))
+    match = manager.get_match(message['match'])
+    match.change_turn(message['code'])
+    match.start_timer()
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
+
+@socketio.on('pause-timer')
+def pause_time(message):
+    app.logger.info( message['match'] + " STOP TIME")
+    match = manager.get_match(message['match'])
+    match.stop_timer()
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
+
+@socketio.on('set-turn')
+def pause_time(message):
+    app.logger.info( message['match'] + " CHANGE TURN: " + str(message['code']))
+    match = manager.get_match(message['match'])
+    match.change_turn(message['code'])
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
+
+@socketio.on('set-time')
+def set_time(message):
+    app.logger.info( message['match'] + " SET TIME " + str(message['code']) + " TO: " + str(message['time']))
+    match = manager.get_match(message['match'])
+    match.set_time(message['code'], message['time'])
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
 
 @socketio.on('handshake_ack')
 def handshake_ack(message):

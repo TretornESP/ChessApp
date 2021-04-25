@@ -23,12 +23,25 @@
   background-color: #BBB;
 }
 
+.modal-buttons {
+  float:right;
+}
+
 *.unselectable {
    -moz-user-select: none;
    -khtml-user-select: none;
    -webkit-user-select: none;
    -ms-user-select: none;
    user-select: none;
+}
+
+.edit-minutes {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+.edit-seconds {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 .actions {
@@ -66,11 +79,23 @@
      padding: 2%;
 }
 
+
+.clock-edit {
+  height: 8%;
+  width: 100%;
+}
+
 .clock {
   background-color: #AAA;
   text-align: center;
   height: 8%;
   width: 100%;
+}
+
+
+.clock-edit span {
+  font-weight: bold;
+  font-size: 30px;
 }
 
 .clock span {

@@ -64,7 +64,7 @@ $(document).ready(function(){
     showModal(
       "Partida finalizada: " + msg.result,
       "<span>"+ending_translator[msg.cause]+"</span>",
-      false
+      true
     );
   });
 
@@ -86,9 +86,8 @@ $(document).ready(function(){
 
   socket.on('receive_movement', function(msg, cb) {
     console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
-    if (msg.start_timer) {
-      timer_active = true;
-    }
+    timer_active = msg.start_timer;
+
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
@@ -211,7 +210,7 @@ function showModal(title, body, cancellable) {
   $('.modal-title').text(title);
   $('.modal-body').html(body);
   if (cancellable) {
-    $('.modal-header').append(
+    $('.modal-closing-buttons').html(
       "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Cerrar\"></button>"
     );
   }
@@ -372,23 +371,6 @@ function linear_to_coords(linear) {
   var col = String.fromCharCode(65+(linear % 8));
   return col+row;
 }
-
-var timer = setInterval(function() {
-  var seconds = parseInt($(".seconds").text(), 10);
-  var minutes = parseInt($(".minutes").text(), 10);
-
-  seconds--;
-
-  if (minutes == 0 && seconds == 0) {
-    clearInterval(timer);
-    //Finish match
-  } else {
-    if (seconds <= 0) {minutes--; seconds = 60;}
-    $(".minutes").text(minutes);
-  }
-  $(".seconds").text(seconds);
-
-}, 1000)
 
 function readCookie(name) {
     var nameEQ = name + "=";

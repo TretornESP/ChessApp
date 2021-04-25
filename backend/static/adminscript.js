@@ -14,6 +14,20 @@ var turn;
 var disable_board = false;
 var crown = "none"
 var timer_active = false;
+var timeout;
+var speed = 500;
+
+var time_modal = '\
+<div class="time-edit clock-edit">\
+  <span class="edit-minutes">4</span>\
+  <span class="edit-blinking">:</span>\
+  <span class="edit-seconds">30</span>\
+  <div class="modal-buttons">\
+    <button id="more-time" type="button" class="btn btn-secondary">+</button>\
+    <button id="less-time" type="button" class="btn btn-secondary">-</button>\
+    <button id="save-%-time" type="button" data-bs-dismiss="modal" class="btn btn-secondary">Guardar</button>\
+  </div>\
+</div>';
 
 $(document).ready(function(){
   $(".crowning :input").attr("disabled", true);
@@ -73,10 +87,8 @@ $(document).ready(function(){
   });
 
   socket.on('receive_movement', function(msg, cb) {
-    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
-    if (msg.start_timer) {
-      timer_active = true;
-    }
+    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timer + " " + msg.start_timer);
+    timer_active = msg.start_timer;
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
@@ -199,15 +211,92 @@ function showModal(title, body, cancellable) {
   $('.modal-title').text(title);
   $('.modal-body').html(body);
   if (cancellable) {
-    $('.modal-header').append(
+    $('.modal-closing-buttons').html(
       "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Cerrar\"></button>"
     );
   }
   $('#just-a-modal').modal({ backdrop: 'static' });
   $('#just-a-modal').modal('show');
+  attachModalButtons();
+}
+
+function moreTime(speed) {
+  var m = $(".edit-minutes");
+  var s = $(".edit-seconds");
+
+  var mt = parseInt(m.text());
+  var st = parseInt(s.text());
+
+  st++;
+
+  if (st >= 60) {
+    mt++;
+    st = 0;
+  }
+
+  m.text(mt);
+  s.text(st);
+  timeout = setTimeout(() => {
+    moreTime(Math.max(50, speed * 0.8));
+  }, speed);
+}
+
+function lessTime(speed) {
+  var m = $(".edit-minutes");
+  var s = $(".edit-seconds");
+
+  var mt = parseInt(m.text());
+  var st = parseInt(s.text());
+
+  st--;
+
+  if (st < 0) {
+    mt--;
+    st = 59;
+  }
+
+  m.text(mt);
+  s.text(st);
+
+  timeout = setTimeout(() => {
+    lessTime(Math.max(50, speed * 0.8));
+  }, speed);
+}
+
+function stop() {
+  clearTimeout(timeout);
+}
+
+function attachModalButtons() {
+  $('#more-time').on('mousedown mouseup mouseleave', e => {
+    if (e.type == "mousedown") {
+      moreTime(speed);
+    } else {
+      stop()
+    }
+  });
+
+  $('#less-time').on('mousedown mouseup mouseleave', e => {
+    if (e.type == "mousedown") {
+      lessTime(speed);
+    } else {
+      stop()
+    }
+  });
+  $("#save-whites-time").click(function() {
+    var m = $(".edit-minutes").text();
+    var s = $(".edit-seconds").text();
+    socket.emit('set-time', {sid: sid, match: code, player: player, code: true, time: parseInt(m)*60+parseInt(s)});
+  });
+  $("#save-blacks-time").click(function() {
+    var m = $(".edit-minutes").text();
+    var s = $(".edit-seconds").text();
+    socket.emit('set-time', {sid: sid, match: code, player: player, code: false, time: parseInt(m)*60+parseInt(s)});
+  });
 }
 
 function attachButtons() {
+
   $("#prev-play").click(function() {
     console.log("prev play clicked!");
     socket.emit('prev-play', {sid: sid, match: code, player: player});
@@ -220,15 +309,40 @@ function attachButtons() {
     console.log("pausing time clicked!");
     socket.emit('pause-timer', {sid: sid, match: code, player: player});
   });
-  $("#start-time").click(function() {
+  $("#start-blacks-time").click(function() {
     console.log("starting time clicked!");
-    socket.emit('start-timer', {sid: sid, match: code, player: player});
+    socket.emit('start-timer', {sid: sid, match: code, player: player, code: false});
   });
   $("#reset-board").click(function() {
     console.log("reset board clicked!");
     socket.emit('reset-board', {sid: sid, match: code, player: player});
   });
-
+  $("#start-whites-time").click(function() {
+    console.log("starting time clicked!");
+    socket.emit('start-timer', {sid: sid, match: code, player: player, code: true});
+  });
+  $("#set-white-turn").click(function() {
+    console.log("white turn set!");
+    socket.emit('set-turn', {sid: sid, match: code, player: player, code: true});
+  });
+  $("#set-black-turn").click(function() {
+    console.log("black turn set!");
+    socket.emit('set-turn', {sid: sid, match: code, player: player, code: false});
+  });
+  $("#edit-whites-time").click(function() {
+    showModal(
+      "Tiempo blancas",
+      time_modal.replace("%", "whites"),
+      true
+    );
+  });
+  $("#edit-blacks-time").click(function() {
+    showModal(
+      "Tiempo negras",
+      time_modal.replace("%", "blacks"),
+      true
+    );
+  });
   $(".crown_btn").click(function crown() {
       console.log("CROWN ID: " + crown_translator[this.id]);
       socket.emit('move', {sid: sid, match: code, player: player, from: translate(crown_from), to: translate(crown_to), crown: crown_translator[this.id]});
@@ -355,23 +469,6 @@ function linear_to_coords(linear) {
   return col+row;
 }
 
-var timer = setInterval(function() {
-  var seconds = parseInt($(".seconds").text(), 10);
-  var minutes = parseInt($(".minutes").text(), 10);
-
-  seconds--;
-
-  if (minutes == 0 && seconds == 0) {
-    clearInterval(timer);
-    //Finish match
-  } else {
-    if (seconds <= 0) {minutes--; seconds = 60;}
-    $(".minutes").text(minutes);
-  }
-  $(".seconds").text(seconds);
-
-}, 1000)
-
 function readCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
@@ -428,7 +525,16 @@ function mouseUp(e) {
   var target = $(e.target).attr("id");
   var current = $("#"+id).attr("id");
   if (legal($("#"+id), $(e.target))) {
-    socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
+    if (checkCrown($("#"+id), $(e.target))) {
+      console.log("CROWN DETECTED");
+      $(".crowning :input").attr("disabled", false);
+      $(".crowning :input").addClass("blinking");
+      disable_board = true;
+      crown_from = current;
+      crown_to = target;
+    } else {
+      socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
+    }
   }
 
   $(".piece").off('mouseenter');

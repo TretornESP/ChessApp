@@ -13,6 +13,20 @@
       <div></div>
     </div>
   </div>
+  <div class="modal fade" data-keyboard="false" data-backdrop="static" id="just-a-modal" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-center">Just a modal</h5>
+          <div class="modal-closing-buttons">
+          </div>
+      <!--    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button> -->
+        </div>
+        <div class="modal-body">
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="parent content">
     <div class="clock">
       <span class="white-dot"></span>
@@ -20,15 +34,18 @@
         <span class="whites-minutes">4</span>
         <span class="whites-blinking">:</span>
         <span class="whites-seconds">30</span>
+        <button id="set-white-turn" type="button" class="btn btn-secondary">Turno de blancas</button>
+        <button id="start-whites-time" type="button" class="btn btn-secondary">Iniciar tiempo</button>
         <button id="edit-whites-time" type="button" class="btn btn-secondary">Editar</button>
       </div>
       <button id="pause-time" type="button" class="btn btn-secondary">Pausar tiempo</button>
-      <button id="start-time" type="button" class="btn btn-secondary">Iniciar tiempo</button>
       <span class="black-dot"></span>
       <div class="right blacks-timer">
         <span class="blacks-minutes">4</span>
         <span class="blacks-blinking">:</span>
         <span class="blacks-seconds">30</span>
+        <button id="set-black-turn" type="button" class="btn btn-secondary">Turno de negras</button>
+        <button id="start-blacks-time" type="button" class="btn btn-secondary">Iniciar tiempo</button>
         <button id="edit-blacks-time" type="button" class="btn btn-secondary">Editar</button>
       </div>
     </div>

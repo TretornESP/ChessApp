@@ -17,11 +17,13 @@ class Match():
         self.white_sid = None
         self.black_sid = None
         self.admin_sid = None
+        self.initial_white_time = white_time
+        self.initial_black_time = black_time
         self.white_time = white_time
         self.black_time = black_time
         self.map = map
         self.timer = threading.Timer(1, self.time)
-        self.kill = False
+        self.kill = True
         self.events = []
     #Timer tiene un lock implicito y no puede ser guardado!!
     def __getstate__(self):
@@ -102,6 +104,11 @@ class Match():
         print(self.map)
     def change_turn(self, turn):
         self.map.turn = turn
+    def reset_match(self):
+        self.stop_timer()
+        self.white_time = self.initial_white_time
+        self.black_time = self.initial_black_time
+        self.map.reset_board()
     def pop(self):
         try:
             return self.map.pop()
@@ -121,6 +128,15 @@ class Match():
         return (self.admin == player)
     def is_viewer(self, player):
         return ("viewer" == player)
+    def set_time(self, player, time):
+        if player:
+            self.white_time = time
+        else:
+            self.black_time = time
+    def set_white_time(self, time):
+        self.white_time = time
+    def set_black_time(self, time):
+        self.black_time = time
     def get_white_time(self):
         return self.white_time
     def get_black_time(self):
@@ -132,7 +148,6 @@ class Match():
         self.time()
     def stop_timer(self):
         self.kill = True
-        self.timer.stop()
     def get_status(self):
         return {
             "whites_link": self.get_whites_link,
@@ -147,7 +162,7 @@ class Match():
         return self.server_config[self.server_config['active']]['host'] +"/match/"+self.get_code()+"/join/"+self.get_admin()
 
     def pack_data(self):
-        return {'turn':self.map.turn, 'data':self.map.board_fen(), 'whites_timer':self.white_time, 'blacks_timer':self.black_time, 'start_timer': self.timer_alive()}
+        return {'turn':self.map.turn, 'data':self.map.board_fen(), 'whites_timer':self.white_time, 'blacks_timer':self.black_time, 'start_timer': not self.kill}
     def get_stack_as_string(self):
         #This is way faster
         list = []
