@@ -13,14 +13,17 @@ from model.dbmanager import DBManager
 from model.match import Match
 from model.move import Move
 from model.player import Player
+from model.accountant import Accountant
+from model.request import Request, RequestType
 
 def create_app():
-    global server_config, socketio, manager, matcher, coder
+    global server_config, socketio, manager, matcher, coder, accountant
 
     server_config = {}
     matcher = {}
     manager = DBManager()
-    coder = ["white_team", "black_team"]
+    accountant = Accountant(manager)
+    coder = ["white_team", "black_team", "admin_team", "viewer"]
 
     app = Flask(__name__, template_folder='templates')
 
@@ -49,7 +52,12 @@ app = create_app()
 def join_match(code, player):
     try:
         match = manager.get_match(code)
-        resp = make_response(render_template('board.html'))
+        if match.is_admin(player):
+            resp = make_response(render_template('admin.html'))
+        elif match.is_viewer(player):
+            resp = make_response(render_template('viewer.html'))
+        else:
+            resp = make_response(render_template('board.html'))
         resp.set_cookie('match', code)
         resp.set_cookie('player', player)
         resp.set_cookie('color', match.get_color(player))
@@ -67,6 +75,17 @@ def get_board(code):
     except KeyError:
         return "unknown"
 
+@app.route("/admin")
+def admin_pane():
+    return make_response(render_template(
+        'Theme/indexm.html',
+        match_count=accountant.get_all_matches_count(),
+        active_count=accountant.get_active_matches_count(),
+        finished_count=accountant.get_finished_matches_count(),
+        event_count=accountant.get_incidences_count(),
+        error_count=accountant.get_errors_count()
+    ))
+
 @app.route('/admin/match/<code>')
 def see_match(code):
     return json.dumps(manager.get_match(code).as_json())
@@ -82,16 +101,24 @@ def remove_all():
 
 @app.route('/admin/new/')
 def new():
-    match = Match()
+    match = Match(server_config)
     manager.add(match)
-    white_link = server_config[server_config['active']]['host'] +"/match/"+match.get_code()+"/join/"+match.get_white()
-    black_link = server_config[server_config['active']]['host'] +"/match/"+match.get_code()+"/join/"+match.get_black()
-    return json.dumps({"code": match.get_code(), "white": white_link, "black": black_link})
+    return json.dumps({"code": match.get_code(), "white": match.get_whites_link(), "black": match.get_blacks_link(), "admin": match.get_admins_link()})
 
 @socketio.on('move')
 def move_socket(message):
     match = manager.get_match(message['match'])
-    if match.valid_turn(message['player']):
+    if match.is_admin(message['player']):
+        match.change_turn(match.color_at(message['from']))
+        try:
+            move = Move(message['player'], message['from'], message['to'], message['crown'])
+        except KeyError:
+            move = Move(message['player'], message['from'], message['to'])
+        match.force_move(move)
+        match.print_map()
+        manager.update(match)
+        app.logger.info("Admin moved "+ move.get_move().uci())
+    elif match.valid_turn(message['player']):
         if not match.timer_alive():
             if match.match_start():
                 app.logger.info("MATCH "+ message['match'] +" STARTED!!!!")
@@ -112,7 +139,7 @@ def move_socket(message):
         if response != None:
             emit('chat', {'data': response}, room=message['match'])
         else:
-            app.logger.info("RESPONSE WAS NONE: " + move.uci())
+            app.logger.info("RESPONSE WAS NONE: " + move.get_move().uci())
 #        except:
 #            app.logger.error("[MOVE] ERROR")
 #            traceback.print_exc()
@@ -146,6 +173,7 @@ def disconnect():
             app.logger.info("[DC] " + match.get_color(match_code['player']) + " " +  request.sid + " disconnected ok")
             manager.update(match)
         else:
+            match.push_event(RequestType.ERROR, request.sid, "[DC] CODE NOT FOUND")
             app.logger.error("[DC] CODE NOT FOUND")
     except:
         app.logger.error("[DC] ERROR")
@@ -166,6 +194,16 @@ def time_up(message):
         print("FALSE ALARM")
         emit('receive_movement', match.pack_data(), room=message['match'])
 
+@socketio.on('prev-play')
+def prev_play(message):
+    app.logger.info("POP PLAY")
+    match = manager.get_match(message['match'])
+    response = match.pop()
+    manager.update(match)
+    emit('receive_movement', match.pack_data(), room=message['match'])
+
+    return response
+
 @socketio.on('handshake_ack')
 def handshake_ack(message):
     match = manager.get_match(message['match'])
@@ -173,7 +211,7 @@ def handshake_ack(message):
     code = match.join_match(message['player'], message['sid'])
     app.logger.info("[HANDSHAKE] ack received from " + message['sid'] + "C: " + color)
 
-    if (code == 0 or code == 1):
+    if (code == 0 or code == 1 or code == 2 or code == 3):
         match = manager.get_match(message['match'])
         emit('chat', {'data': match.get_stack_as_string()}, room=request.sid)
         out = match.get_outcome()
@@ -189,8 +227,8 @@ def handshake_ack(message):
         manager.update(match)
 
         app.logger.info("PLAYER " + match.get_color(message['player']) + " JOINED OKAY")
-
     else:
+        match.push_event(RequestType.ERROR, message['player'], "ERROR JOINING: INVALID PLAYER CODE")
         app.logger.info("ERROR JOINING: INVALID PLAYER CODE")
 
 @socketio.on('connect')
@@ -199,3 +237,22 @@ def connect():
     join_room(request.sid)
     emit('handshake', {'data': request.sid}, room=request.sid)
     app.logger.info("[HANDSHAKE] sent to "+request.sid)
+
+@socketio.on('report_illegal')
+def report(message):
+    match = manager.get_match(message['match'])
+    app.logger.info(message['match'] + " " + match.get_color(message['player'] + " REPORTED ILLEGAL"))
+    match.push_event(RequestType.ILLEGAL, message['player'])
+@socketio.on('request_admin')
+def admin(message):
+    match = manager.get_match(message['match'])
+    app.logger.info(message['match'] + " " + match.get_color(message['player'] + " REQUESTED ADMIN"))
+    match.push_event(RequestType.ADMIN, message['player'])
+@socketio.on('request_forfait')
+def forfait(message):
+    match = manager.get_match(message['match'])
+    app.logger.info(message['match'] + " " + match.get_color(message['player'] + " REQUESTED FORFAIT"))
+@socketio.on('request_draw')
+def draw(message):
+    match = manager.get_match(message['match'])
+    app.logger.info(message['match'] + " " + match.get_color(message['player'] + " REQUESTED DRAW"))

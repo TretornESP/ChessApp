@@ -12,9 +12,14 @@ class DBManager():
         del self._db[match.get_code()]
     def empty(self):
         self._db.clear()
+    def count(self):
+        return len(self._db)
     def get_match(self, code):
         if code not in self.matches_cache:
-            self.matches_cache[code] = self._db[code]
+            try:
+                self.matches_cache[code] = self._db[code]
+            except KeyError:
+                return None
         return self.matches_cache[code]
     def get_all_matches(self):
         list = []

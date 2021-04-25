@@ -16,15 +16,10 @@ var crown = "none"
 var timer_active = false;
 
 $(document).ready(function(){
-  $(".crowning :input").attr("disabled", true);
-
   set_players();
   generateBoard();
   attachButtons();
-  window.addEventListener('beforeunload', function (e) {
-      e.preventDefault();
-      e.returnValue = '';
-  });
+  $(".loading").addClass('hidden');
 
   $( window ).resize(function() {
     generateBoard();
@@ -39,15 +34,6 @@ $(document).ready(function(){
 
   socket.on('disconnect', function() {
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
-  });
-
-  socket.on('unlock', function(msg, cb) {
-    console.log('Received unlock order for ' + msg.data);
-    if (msg.data === player_team) {
-      toggleLoading();
-    }
-     //if (cb)
-     // cb();
   });
 
   socket.on('my_response', function(msg, cb) {
@@ -85,7 +71,7 @@ $(document).ready(function(){
   });
 
   socket.on('receive_movement', function(msg, cb) {
-    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
+    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timer + " " + msg.start_timer);
     if (msg.start_timer) {
       timer_active = true;
     }
@@ -130,14 +116,14 @@ $(document).ready(function(){
 
     if ((seconds+minutes) <= 0) {
       console.log("TIMES UP!!");
-      socket.emit('times_up', {sid: sid, match: code, player: player});
+    //  socket.emit('times_up', {sid: sid, match: code, player: player});
     }
 
     if (seconds <= 0) {
       minutes--;
       if (minutes <= 0) {
         console.log("TIMES UP!!");
-        socket.emit('times_up', {sid: sid, match: code, player: player});
+      //  socket.emit('times_up', {sid: sid, match: code, player: player});
         m.text("0");
         s.text("0");
         timer_active = false;
@@ -219,38 +205,6 @@ function showModal(title, body, cancellable) {
   $('#just-a-modal').modal('show');
 }
 
-function attachButtons() {
-  $("#report").click(function() {
-    console.log("report clicked!");
-    socket.emit('report_illegal', {sid: sid, match: code, player: player});
-  });
-  $("#call").click(function() {
-    console.log("call clicked!");
-    socket.emit('request_admin', {sid: sid, match: code, player: player});
-  });
-  $("#end").click(function() {
-    console.log("end clicked!");
-    socket.emit('request_forfait', {sid: sid, match: code, player: player});
-  });
-  $("#tie").click(function() {
-    console.log("tie clicked!");
-    socket.emit('request_draw', {sid: sid, match: code, player: player});
-  });
-  $(".crown_btn").click(function crown() {
-      console.log("CROWN ID: " + crown_translator[this.id]);
-      socket.emit('move', {sid: sid, match: code, player: player, from: translate(crown_from), to: translate(crown_to), crown: crown_translator[this.id]});
-
-      $(".crowning :input").attr("disabled", true);
-      $(".crowning :input").removeClass("blinking");
-      disable_board = false;
-  });
-  $("#extra").click(function extra() {
-    console.log("CLIK");
-    $('#just-a-modal').modal({ backdrop: 'static' });
-    $('#just-a-modal').modal('show');
-  });
-}
-
 function color(x, y) {
   if (((x+y) % 2) == 0) {
     return "white";
@@ -277,25 +231,14 @@ function generateBoard() {
   console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
 
-  if (player_team === "white_team") {
-    for (i = 0; i < 8; i++) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
-      }
-      appendLimit(9-(i+1));
+  for (i = 0; i < 8; i++) {
+    appendLimit(9-(i+1));
+    for (j = 0; j < 8; j++) {
+      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
     }
-    generateLimit();
-  } else {
-    for (i = 7; i >= 0; i--) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
-      }
-      appendLimit(9-(i+1));
-    }
-    generateLimit();
+    appendLimit(9-(i+1));
   }
+  generateLimit();
 
 
   $(".piece").mousedown(mouseDown);
@@ -304,68 +247,6 @@ function generateBoard() {
   $(".black, .white, .limit").css('font-size', Math.ceil(volume/10)-PIECE_SIZE_OFFSET + "px");
 }
 var id;
-
-function mouseDown(e) {
-    if (disable_board) return;
-    $(".piece").mouseenter(function(e){
-      $(e.target).css("background-color","green");
-    });
-
-    $(".piece").mouseleave(function(e){
-      if ($(e.target).hasClass("white")) {
-        $(e.target).css("background-color","#fff");
-      } else {
-        $(e.target).css("background-color","966F33");
-      }
-    });
-
-    id = $(e.target).attr("id");
-    console.log("DOWN: "+id);
-}
-
-
-function checkCrown(down, up) {
-  if (down.hasClass(wp.code)) {
-    if (up.attr("id") >= 0  && up.attr("id") <= 7) {
-      return true;
-    }
-    return false;
-  }
-  if (down.hasClass(bp.code)) {
-    if (up.attr("id") >= 56  && up.attr("id") <= 63) {
-      return true;
-    }
-    return false;
-  }
-}
-
-function legal(down, up) {
-  console.log("DOWN: " + down.text() + " UP: " + up.text());
-  if (up.attr("id") === down.attr("id")) {
-    console.log("Same slot!");
-    return false;
-  }
-  if (!down.hasClass("piece") || !up.hasClass("piece")) {
-    console.log("Out of board bounds!");
-    return false;
-  }
-  if (down.text() === "") {
-    console.log("Selected empty!");
-    return false;
-  }
-  //CAMBIAME
-  /*
-  if (up.hasClass(player_team)) {
-    console.log("Over an ally!");
-    return false;
-  }
-  if (down.hasClass(enemy_team)) {
-    console.log("Moving an enemy");
-    return false;
-  }
-  */
-  return true;
-}
 
 function linear_to_coords(linear) {
   var row = Math.floor(linear / 8);
@@ -401,80 +282,14 @@ function readCookie(name) {
     return null;
 }
 
-//function generate_move_url(code) {
-//  return window.location.protocol + "//" + window.location.host + "/match/" + code + "/move";
-//}
-
 function set_players() {
   code = readCookie('match');
   player = readCookie('player');
   var color = readCookie('color');
-  if (color === "white") {
-    player_team = "white_team";
-    player_number = 0;
-    enemy_team = "black_team";
-  } else if (color === "black") {
-    player_team = "black_team";
-    player_number = 1;
-    enemy_team = "white_team";
-  }
-
-  console.log("Match started P:"+player_team+" E:"+enemy_team);
-}
-
-function mouseUp(e) {
-  if (disable_board) return;
-
-  var target = $(e.target).attr("id");
-  var current = $("#"+id).attr("id");
-
-  console.log("C: "+current+" T: "+target);
-  if (legal($("#"+id), $(e.target))) {
-    console.log("LLEGA");
-
-    $(e.target).text($("#"+id).text());
-    $("#"+id).text(z.key);
-
-    if ($(e.target).hasClass(enemy_team)) {
-      $(e.target).removeClass(enemy_team);
-    } else if ($(e.target).hasClass(neutral_team)) {
-      $(e.target).removeClass(neutral_team);
-    }
-    $(e.target).addClass(player_team);
-    $("#"+id).removeClass(player_team);
-    $("#"+id).addClass(neutral_team);
-
-    console.log("UP: "+id);
-
-    if (checkCrown($("#"+id), $(e.target))) {
-      console.log("CROWN DETECTED");
-      $(".crowning :input").attr("disabled", false);
-      $(".crowning :input").addClass("blinking");
-      disable_board = true;
-      crown_from = current;
-      crown_to = target;
-    } else {
-      socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
-    }
-  } else {
-    console.log("frontend illegal");
-  }
-
-  $(".piece").off('mouseenter');
-
+  player_team = "admin_team";
 }
 
 //You sneaky bitch
 function translate(move) {
   return move-16*Math.floor(move/8)+56;
-}
-
-function toggleLoading(event){
-  $(".loading").addClass('hidden');
-
-/*  if ($(".loading").hasClass('hidden')){
-    $(".loading").removeClass('hidden');
-  } else {
-    $(".loading").addClass('hidden');
-  }*/
 }

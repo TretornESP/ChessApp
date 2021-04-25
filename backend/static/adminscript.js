@@ -21,10 +21,7 @@ $(document).ready(function(){
   set_players();
   generateBoard();
   attachButtons();
-  window.addEventListener('beforeunload', function (e) {
-      e.preventDefault();
-      e.returnValue = '';
-  });
+  $(".loading").addClass('hidden');
 
   $( window ).resize(function() {
     generateBoard();
@@ -39,15 +36,6 @@ $(document).ready(function(){
 
   socket.on('disconnect', function() {
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
-  });
-
-  socket.on('unlock', function(msg, cb) {
-    console.log('Received unlock order for ' + msg.data);
-    if (msg.data === player_team) {
-      toggleLoading();
-    }
-     //if (cb)
-     // cb();
   });
 
   socket.on('my_response', function(msg, cb) {
@@ -130,14 +118,14 @@ $(document).ready(function(){
 
     if ((seconds+minutes) <= 0) {
       console.log("TIMES UP!!");
-      socket.emit('times_up', {sid: sid, match: code, player: player});
+    //  socket.emit('times_up', {sid: sid, match: code, player: player});
     }
 
     if (seconds <= 0) {
       minutes--;
       if (minutes <= 0) {
         console.log("TIMES UP!!");
-        socket.emit('times_up', {sid: sid, match: code, player: player});
+      //  socket.emit('times_up', {sid: sid, match: code, player: player});
         m.text("0");
         s.text("0");
         timer_active = false;
@@ -220,22 +208,27 @@ function showModal(title, body, cancellable) {
 }
 
 function attachButtons() {
-  $("#report").click(function() {
-    console.log("report clicked!");
-    socket.emit('report_illegal', {sid: sid, match: code, player: player});
+  $("#prev-play").click(function() {
+    console.log("prev play clicked!");
+    socket.emit('prev-play', {sid: sid, match: code, player: player});
   });
-  $("#call").click(function() {
-    console.log("call clicked!");
-    socket.emit('request_admin', {sid: sid, match: code, player: player});
+  $("#next-play").click(function() {
+    console.log("next play clicked!");
+    socket.emit('next-play', {sid: sid, match: code, player: player});
   });
-  $("#end").click(function() {
-    console.log("end clicked!");
-    socket.emit('request_forfait', {sid: sid, match: code, player: player});
+  $("#pause-time").click(function() {
+    console.log("pausing time clicked!");
+    socket.emit('pause-timer', {sid: sid, match: code, player: player});
   });
-  $("#tie").click(function() {
-    console.log("tie clicked!");
-    socket.emit('request_draw', {sid: sid, match: code, player: player});
+  $("#start-time").click(function() {
+    console.log("starting time clicked!");
+    socket.emit('start-timer', {sid: sid, match: code, player: player});
   });
+  $("#reset-board").click(function() {
+    console.log("reset board clicked!");
+    socket.emit('reset-board', {sid: sid, match: code, player: player});
+  });
+
   $(".crown_btn").click(function crown() {
       console.log("CROWN ID: " + crown_translator[this.id]);
       socket.emit('move', {sid: sid, match: code, player: player, from: translate(crown_from), to: translate(crown_to), crown: crown_translator[this.id]});
@@ -277,25 +270,14 @@ function generateBoard() {
   console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
 
-  if (player_team === "white_team") {
-    for (i = 0; i < 8; i++) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
-      }
-      appendLimit(9-(i+1));
+  for (i = 0; i < 8; i++) {
+    appendLimit(9-(i+1));
+    for (j = 0; j < 8; j++) {
+      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
     }
-    generateLimit();
-  } else {
-    for (i = 7; i >= 0; i--) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
-      }
-      appendLimit(9-(i+1));
-    }
-    generateLimit();
+    appendLimit(9-(i+1));
   }
+  generateLimit();
 
 
   $(".piece").mousedown(mouseDown);
@@ -405,21 +387,39 @@ function readCookie(name) {
 //  return window.location.protocol + "//" + window.location.host + "/match/" + code + "/move";
 //}
 
+function legal(down, up) {
+  console.log("DOWN: " + down.text() + " UP: " + up.text());
+  if (up.attr("id") === down.attr("id")) {
+    console.log("Same slot!");
+    return false;
+  }
+  if (!down.hasClass("piece") || !up.hasClass("piece")) {
+    console.log("Out of board bounds!");
+    return false;
+  }
+  if (down.text() === "") {
+    console.log("Selected empty!");
+    return false;
+  }
+  //CAMBIAME
+  /*
+  if (up.hasClass(player_team)) {
+    console.log("Over an ally!");
+    return false;
+  }
+  if (down.hasClass(enemy_team)) {
+    console.log("Moving an enemy");
+    return false;
+  }
+  */
+  return true;
+}
+
 function set_players() {
   code = readCookie('match');
   player = readCookie('player');
   var color = readCookie('color');
-  if (color === "white") {
-    player_team = "white_team";
-    player_number = 0;
-    enemy_team = "black_team";
-  } else if (color === "black") {
-    player_team = "black_team";
-    player_number = 1;
-    enemy_team = "white_team";
-  }
-
-  console.log("Match started P:"+player_team+" E:"+enemy_team);
+  player_team = "admin_team";
 }
 
 function mouseUp(e) {
@@ -427,37 +427,8 @@ function mouseUp(e) {
 
   var target = $(e.target).attr("id");
   var current = $("#"+id).attr("id");
-
-  console.log("C: "+current+" T: "+target);
   if (legal($("#"+id), $(e.target))) {
-    console.log("LLEGA");
-
-    $(e.target).text($("#"+id).text());
-    $("#"+id).text(z.key);
-
-    if ($(e.target).hasClass(enemy_team)) {
-      $(e.target).removeClass(enemy_team);
-    } else if ($(e.target).hasClass(neutral_team)) {
-      $(e.target).removeClass(neutral_team);
-    }
-    $(e.target).addClass(player_team);
-    $("#"+id).removeClass(player_team);
-    $("#"+id).addClass(neutral_team);
-
-    console.log("UP: "+id);
-
-    if (checkCrown($("#"+id), $(e.target))) {
-      console.log("CROWN DETECTED");
-      $(".crowning :input").attr("disabled", false);
-      $(".crowning :input").addClass("blinking");
-      disable_board = true;
-      crown_from = current;
-      crown_to = target;
-    } else {
-      socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
-    }
-  } else {
-    console.log("frontend illegal");
+    socket.emit('move', {sid: sid, match: code, player: player, from: translate(current), to: translate(target)});
   }
 
   $(".piece").off('mouseenter');
@@ -467,14 +438,4 @@ function mouseUp(e) {
 //You sneaky bitch
 function translate(move) {
   return move-16*Math.floor(move/8)+56;
-}
-
-function toggleLoading(event){
-  $(".loading").addClass('hidden');
-
-/*  if ($(".loading").hasClass('hidden')){
-    $(".loading").removeClass('hidden');
-  } else {
-    $(".loading").addClass('hidden');
-  }*/
 }

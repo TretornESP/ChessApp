@@ -1,4 +1,4 @@
-active: 'vps'
+active: 'local'
 local:
   host: http://localhost:5000
   ping_interval: 40
