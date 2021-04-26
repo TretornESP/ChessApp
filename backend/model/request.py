@@ -18,3 +18,5 @@ class Request():
         return self.time.strftime("%d/%m/%Y %H:%M:%S") + " " + self.requester + " informa: " + self.type.value
     def get_info(self):
         return self.info
+    def get_json(self):
+        return {'type': self.type.value, 'requester': self.requester, 'time': self.time.strftime("%d/%m/%Y %H:%M:%S"), 'extra': "" if self.info==None else self.info}

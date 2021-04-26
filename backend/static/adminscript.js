@@ -89,6 +89,7 @@ $(document).ready(function(){
   socket.on('receive_movement', function(msg, cb) {
     console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timer + " " + msg.start_timer);
     timer_active = msg.start_timer;
+
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
@@ -128,9 +129,9 @@ $(document).ready(function(){
 
     seconds--;
 
-    if ((seconds+minutes) <= 0) {
+    if (minutes < 0) {
       console.log("TIMES UP!!");
-    //  socket.emit('times_up', {sid: sid, match: code, player: player});
+      socket.emit('times_up', {sid: sid, match: code, player: player});
     }
 
     if (seconds <= 0) {
@@ -237,7 +238,7 @@ function moreTime(speed) {
   m.text(mt);
   s.text(st);
   timeout = setTimeout(() => {
-    moreTime(Math.max(50, speed * 0.8));
+    moreTime(Math.max(25, speed * 0.8));
   }, speed);
 }
 
@@ -259,7 +260,7 @@ function lessTime(speed) {
   s.text(st);
 
   timeout = setTimeout(() => {
-    lessTime(Math.max(50, speed * 0.8));
+    lessTime(Math.max(25, speed * 0.8));
   }, speed);
 }
 

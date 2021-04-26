@@ -2,12 +2,15 @@ import chess
 import uuid
 from threading import Timer
 import threading
+from datetime import datetime
 
 from .request import Request, RequestType
 
 class Match():
-    def __init__(self, server_config, white_time=300, black_time=300, map=chess.Board()):
+    def __init__(self, server_config, white_name, black_name, white_time=300, black_time=300, map=chess.Board()):
         self.server_config = server_config
+        self.white_name = white_name if white_name!=None else ""
+        self.black_name = black_name if black_name!=None else ""
         self.code = str(uuid.uuid4())
         self.white = str(uuid.uuid4())[:8]
         self.black = str(uuid.uuid4())[:8]
@@ -24,6 +27,9 @@ class Match():
         self.map = map
         self.timer = threading.Timer(1, self.time)
         self.kill = True
+        self.start_time = None
+        self.end_time = None
+        self.finished = False
         self.events = []
     #Timer tiene un lock implicito y no puede ser guardado!!
     def __getstate__(self):
@@ -35,11 +41,19 @@ class Match():
         self.__dict__.update(state)
         self.timer = threading.Timer(1, self.time)
 
-    def push_event(self, type, requester, extra=None):
-        self.events.append(Request(type, requester, extra))
+    def push_event(self, request):
+        self.events.append(request)
 
     def get_events(self):
         return self.events
+
+    def get_name_from_code(self, code):
+        if code==self.white:
+            return self.white_name
+        elif code==self.black:
+            return self.black_name
+        else:
+            return "unknown"
 
     def get_specific_reports(self, type):
         list = []
@@ -59,9 +73,25 @@ class Match():
             if evt.get_type()!=RequestType.ERROR:
                 list.append(evt)
         return list
+    def get_all_reports(self):
+        list = []
+        for evt in self.events:
+            list.append(evt.get_json())
+        return list
+    def get_start_time(self):
+        if self.start_time!=None:
+            return self.start_time.strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            return ""
+    def get_finish_time(self):
+        if self.end_time!=None:
+            return self.end_time.strftime("%d/%m/%Y %H:%M:%S")
+        else:
+            return ""
     def match_start(self):
         print(self.white_joined, self.black_joined)
         if self.white_joined and self.black_joined:
+            self.start_time = datetime.now()
             self.start_timer()
             return True
         return False
@@ -69,9 +99,19 @@ class Match():
         return self.white_joined
     def black_has_joined(self):
         return self.black_joined
+    def get_white_name(self):
+        return self.white_name
+    def get_black_name(self):
+        return self.black_name
     def match_pause(self):
         self.started = False
-
+    def has_finished(self):
+        return self.finished
+    def finish_match(self):
+        self.started = False
+        self.kill = True
+        self.finished = True
+        self.end_time = datetime.now()
     #Check if time has run out
     #RETURN: 1 Whites have no time
     # 2: blacks have no time
@@ -108,6 +148,10 @@ class Match():
         self.stop_timer()
         self.white_time = self.initial_white_time
         self.black_time = self.initial_black_time
+        self.finished = False
+        self.started = False
+        self.start_time = None
+        self.end_time = None
         self.map.reset_board()
     def pop(self):
         try:
@@ -129,6 +173,8 @@ class Match():
     def is_viewer(self, player):
         return ("viewer" == player)
     def set_time(self, player, time):
+        if time < 0:
+            time = 0
         if player:
             self.white_time = time
         else:
@@ -150,17 +196,33 @@ class Match():
         self.kill = True
     def get_status(self):
         return {
-            "whites_link": self.get_whites_link,
-            "blacks_link": self.get_blacks_link,
-            "admins_link": self.get_admins_link
+            "whites_name": self.get_white_name(),
+            "whites_clock": self.get_white_time(),
+            "blacks_clock": self.get_black_time(),
+            "blacks_name": self.get_black_name(),
+            "whites_link": self.get_whites_link(),
+            "blacks_link": self.get_blacks_link(),
+            "admins_link": self.get_admins_link(),
+            "viewers_link": self.get_viewers_link()
         }
+    def get_reduced_status(self):
+            return {
+                "code": self.get_code(),
+                "whites_name": self.get_white_name(),
+                "blacks_name": self.get_black_name(),
+                "whites_link": self.get_whites_link(),
+                "blacks_link": self.get_blacks_link(),
+                "admins_link": self.get_admins_link(),
+                "viewers_link": self.get_viewers_link()
+            }
     def get_whites_link(self):
         return self.server_config[self.server_config['active']]['host'] +"/match/"+self.get_code()+"/join/"+self.get_white()
     def get_blacks_link(self):
         return self.server_config[self.server_config['active']]['host'] +"/match/"+self.get_code()+"/join/"+self.get_black()
     def get_admins_link(self):
         return self.server_config[self.server_config['active']]['host'] +"/match/"+self.get_code()+"/join/"+self.get_admin()
-
+    def get_viewers_link(self):
+        return self.server_config[self.server_config['active']]['host'] +"/match/"+self.get_code()+"/join/viewer"
     def pack_data(self):
         return {'turn':self.map.turn, 'data':self.map.board_fen(), 'whites_timer':self.white_time, 'blacks_timer':self.black_time, 'start_timer': not self.kill}
     def get_stack_as_string(self):

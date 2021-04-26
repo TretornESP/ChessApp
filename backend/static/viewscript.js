@@ -16,10 +16,14 @@ var crown = "none"
 var timer_active = false;
 
 $(document).ready(function(){
+  $(".crowning :input").attr("disabled", true);
+
   set_players();
   generateBoard();
-  attachButtons();
-  $(".loading").addClass('hidden');
+  window.addEventListener('beforeunload', function (e) {
+      e.preventDefault();
+      e.returnValue = '';
+  });
 
   $( window ).resize(function() {
     generateBoard();
@@ -36,6 +40,15 @@ $(document).ready(function(){
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
   });
 
+  socket.on('unlock', function(msg, cb) {
+    console.log('Received unlock order for ' + msg.data);
+    if (msg.data === player_team) {
+      toggleLoading();
+    }
+     //if (cb)
+     // cb();
+  });
+
   socket.on('my_response', function(msg, cb) {
     console.log('Received #' + msg.count + ': ' + msg.data);
     if (msg.lock === 'no') {
@@ -50,7 +63,7 @@ $(document).ready(function(){
     showModal(
       "Partida finalizada: " + msg.result,
       "<span>"+ending_translator[msg.cause]+"</span>",
-      false
+      true
     );
   });
 
@@ -71,10 +84,9 @@ $(document).ready(function(){
   });
 
   socket.on('receive_movement', function(msg, cb) {
-    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timer + " " + msg.start_timer);
-    if (msg.start_timer) {
-      timer_active = true;
-    }
+    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
+    timer_active = msg.start_timer;
+
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
@@ -116,14 +128,14 @@ $(document).ready(function(){
 
     if ((seconds+minutes) <= 0) {
       console.log("TIMES UP!!");
-    //  socket.emit('times_up', {sid: sid, match: code, player: player});
+      socket.emit('times_up', {sid: sid, match: code, player: player});
     }
 
     if (seconds <= 0) {
       minutes--;
       if (minutes <= 0) {
         console.log("TIMES UP!!");
-      //  socket.emit('times_up', {sid: sid, match: code, player: player});
+        socket.emit('times_up', {sid: sid, match: code, player: player});
         m.text("0");
         s.text("0");
         timer_active = false;
@@ -197,7 +209,7 @@ function showModal(title, body, cancellable) {
   $('.modal-title').text(title);
   $('.modal-body').html(body);
   if (cancellable) {
-    $('.modal-header').append(
+    $('.modal-closing-buttons').html(
       "<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Cerrar\"></button>"
     );
   }
@@ -231,20 +243,28 @@ function generateBoard() {
   console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
 
-  for (i = 0; i < 8; i++) {
-    appendLimit(9-(i+1));
-    for (j = 0; j < 8; j++) {
-      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+  if (player_team === "white_team") {
+    for (i = 0; i < 8; i++) {
+      appendLimit(9-(i+1));
+      for (j = 0; j < 8; j++) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      }
+      appendLimit(9-(i+1));
     }
-    appendLimit(9-(i+1));
+    generateLimit();
+  } else {
+    for (i = 7; i >= 0; i--) {
+      appendLimit(9-(i+1));
+      for (j = 0; j < 8; j++) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      }
+      appendLimit(9-(i+1));
+    }
+    generateLimit();
   }
-  generateLimit();
 
-
-  $(".piece").mousedown(mouseDown);
-  $(".piece").mouseup(mouseUp);
   var volume = parseInt($(".chessboard").height());
-  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10)-PIECE_SIZE_OFFSET + "px");
+  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10) + "px");
 }
 var id;
 
@@ -253,23 +273,6 @@ function linear_to_coords(linear) {
   var col = String.fromCharCode(65+(linear % 8));
   return col+row;
 }
-
-var timer = setInterval(function() {
-  var seconds = parseInt($(".seconds").text(), 10);
-  var minutes = parseInt($(".minutes").text(), 10);
-
-  seconds--;
-
-  if (minutes == 0 && seconds == 0) {
-    clearInterval(timer);
-    //Finish match
-  } else {
-    if (seconds <= 0) {minutes--; seconds = 60;}
-    $(".minutes").text(minutes);
-  }
-  $(".seconds").text(seconds);
-
-}, 1000)
 
 function readCookie(name) {
     var nameEQ = name + "=";
@@ -282,12 +285,27 @@ function readCookie(name) {
     return null;
 }
 
+//function generate_move_url(code) {
+//  return window.location.protocol + "//" + window.location.host + "/match/" + code + "/move";
+//}
+
 function set_players() {
   code = readCookie('match');
   player = readCookie('player');
-  var color = readCookie('color');
-  player_team = "admin_team";
+  var color = "white";
+  if (color === "white") {
+    player_team = "white_team";
+    player_number = 0;
+    enemy_team = "black_team";
+  } else if (color === "black") {
+    player_team = "black_team";
+    player_number = 1;
+    enemy_team = "white_team";
+  }
+
+  console.log("Match started P:"+player_team+" E:"+enemy_team);
 }
+
 
 //You sneaky bitch
 function translate(move) {
