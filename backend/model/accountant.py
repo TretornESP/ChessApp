@@ -66,6 +66,12 @@ class Accountant():
                     }
                 )
         return res
+    def get_matches_strings(self):
+        res = []
+        list = self.manager.get_all_matches()
+        for obj in list:
+            res.append(self.manager.get_match(obj).get_reduced_status())
+        return res
     def get_incidences_strings(self):
         res = []
         list = self.manager.get_all_matches()

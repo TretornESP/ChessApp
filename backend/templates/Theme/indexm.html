@@ -71,7 +71,7 @@
               	  <h5 class="centered">Openchess Admin</h5>
 
                   <li class="mt">
-                      <a class="active" href="index.html">
+                      <a class="active" href="{{url_for('admin_pane')}}">
                           <i class="fa fa-dashboard"></i>
                           <span>Resumen</span>
                       </a>
@@ -86,7 +86,7 @@
                           <li><a  href="{{url_for('new')}}">Nueva partida</a></li>
                       </ul>
                       <ul class="sub">
-                          <li><a  href="#partidas">Ver partidas</a></li>
+                          <li><a  href="{{url_for('get_matches')}}">Ver partidas</a></li>
                       </ul>
                       <ul class="sub">
                           <li><a  href="{{url_for('remove_all')}}">Eliminar todas las partidas</a></li>

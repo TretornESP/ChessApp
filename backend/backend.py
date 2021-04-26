@@ -79,6 +79,11 @@ def get_events():
     app.logger.info("FOUND: " + str(len(evts)) + " INCIDENCES")
     return make_response(render_template('Theme/events.html', events=evts))
 
+@app.route('/admin/view_matches')
+def get_matches():
+    mtch = accountant.get_matches_strings()
+    app.logger.info("FOUND: " + str(len(mtch)) + " MATCHES")
+    return make_response(render_template('Theme/viewmatches.html', matches=mtch))
 
 @app.route("/admin")
 def admin_pane():
