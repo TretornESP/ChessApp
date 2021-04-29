@@ -35,7 +35,7 @@ class Accountant():
         list = self.manager.get_all_matches()
         for obj in list:
             match = self.manager.get_match(obj)
-            if match.get_outcome() != None or match.match_end_time()!=0:
+            if match.get_outcome() != None or match.match_end_time()!=0 or match.has_finished():
                 count += 1
         return count
     def get_finished_matches_strings(self):
@@ -43,7 +43,7 @@ class Accountant():
         list = self.manager.get_all_matches()
         for obj in list:
             match = self.manager.get_match(obj)
-            if match.get_outcome() != None:
+            if match.get_outcome() != None or match.has_finished():
                 res.append(
                     {
                         'codigo': match.get_code(),

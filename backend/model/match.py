@@ -8,6 +8,7 @@ from .request import Request, RequestType
 
 class Match():
     def __init__(self, server_config, white_name, black_name, white_time=300, black_time=300, map=chess.Board()):
+        print("CREATING MATCH!!!!")
         self.server_config = server_config
         self.white_name = white_name if white_name!=None else ""
         self.black_name = black_name if black_name!=None else ""
@@ -30,6 +31,7 @@ class Match():
         self.start_time = None
         self.end_time = None
         self.finished = False
+        self.finish_cause = None
         self.events = []
     #Timer tiene un lock implicito y no puede ser guardado!!
     def __getstate__(self):
@@ -44,9 +46,20 @@ class Match():
     def push_event(self, request):
         self.events.append(request)
 
+    def get_serializable(self):
+        serializable = self.__getstate__()
+        serializable['map'] = self.get_map()
+        serializable['start_time'] = self.get_start_time()
+        serializable['end_time'] = self.get_finish_time()
+        serializable['finish_cause'] = self.get_finish_cause_serializable()
+        return serializable
     def get_events(self):
         return self.events
-
+    def get_rival_code(self, code):
+        if code==self.white:
+            return self.black
+        elif code==self.black:
+            return self.white
     def get_name_from_code(self, code):
         if code==self.white:
             return self.white_name
@@ -54,7 +67,6 @@ class Match():
             return self.black_name
         else:
             return "unknown"
-
     def get_specific_reports(self, type):
         list = []
         for evt in self.events:
@@ -90,7 +102,7 @@ class Match():
             return ""
     def match_start(self):
         print(self.white_joined, self.black_joined)
-        if self.white_joined and self.black_joined:
+        if self.white_joined and self.black_joined and not self.finished:
             self.start_time = datetime.now()
             self.start_timer()
             return True
@@ -107,7 +119,14 @@ class Match():
         self.started = False
     def has_finished(self):
         return self.finished
-    def finish_match(self):
+    def get_finish_cause_serializable(self):
+        if self.finish_cause==None:
+            return ""
+        return {'endcause': self.finish_cause.termination.value, 'endwinner': self.finish_cause.winner, 'endstr': self.finish_cause.str()}
+    def get_finish_cause(self):
+        return self.finish_cause
+    def finish_match(self, cause, winner):
+        self.finish_cause = chess.Outcome(chess.Termination(cause), winner)
         self.started = False
         self.kill = True
         self.finished = True
@@ -146,6 +165,7 @@ class Match():
         self.map.turn = turn
     def reset_match(self):
         self.stop_timer()
+        print("RESETING MATCH!!!!!!!!")
         self.white_time = self.initial_white_time
         self.black_time = self.initial_black_time
         self.finished = False
@@ -264,8 +284,10 @@ class Match():
     #return codes:
     #SUCCESS: 0 white joined,          1 black joined, 2 admin joined
     #ERROR:  -1 White already joined, -2 Black Already Joined
-    #        -3 Invalid player code
+    #        -3 Invalid player code, -4 match has finished
     def join_match(self, player, sid):
+        if self.finished:
+            return -4
         if player == self.white:
             self.white_sid = sid
             self.white_joined = True

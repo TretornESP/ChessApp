@@ -73,6 +73,15 @@ def get_board(code):
     except KeyError:
         return "unknown"
 
+
+@app.route('/admin/<code>/detailed')
+def get_details(code):
+    try:
+        match = manager.get_match(code)
+        return json.dumps(match.get_serializable())
+    except KeyError:
+        return "unknown"
+
 @app.route('/admin/view_events')
 def get_events():
     evts = accountant.get_incidences_strings()
@@ -132,7 +141,7 @@ def move_socket(message):
         match.print_map()
         manager.update(match)
         app.logger.info("Admin moved "+ move.get_move().uci())
-    elif match.valid_turn(message['player']):
+    elif match.valid_turn(message['player']) and not match.has_finished():
         if not match.timer_alive():
             if match.match_start():
                 app.logger.info("MATCH "+ message['match'] +" STARTED!!!!")
@@ -164,15 +173,15 @@ def move_socket(message):
     if out != None:
         app.logger.info("[END] M: " + message['match'] + " C: " + str(out.termination) + " W: " +str(out.winner) + " R: " + out.result())
         emit('ended', {'cause': out.termination.value, 'winner': out.winner, 'result': out.result()}, room=message['match'])
-        match.finish_match()
+        match.finish_match(out.termination.value, out.winner)
 
     if match.match_end_time() != 0:
         if match.match_end_time() == 1:
             emit('ended', {'cause': 8, 'winner': False, 'result': "0-1"}, room=message['match'])
-            match.finish_match()
+            match.finish_match(1, False)
         elif match.match_end_time() == 2:
             emit('ended', {'cause': 9, 'winner': True, 'result': "1-0"}, room=message['match'])
-            match.finish_match()
+            match.finish_match(1, True)
 
 @socketio.on('my_event')
 def test_message(message):
@@ -207,13 +216,12 @@ def time_up(message):
     if match.match_end_time() == 1:
         print("INDEED WHITE OUT OF TIME")
         emit('ended', {'cause': 8, 'winner': False, 'result': "0-1"}, room=message['match'])
-        match.finish_match()
+        match.finish_match(1, False)
 
     elif match.match_end_time() == 2:
         print("INDEED BLACK OUT OF TIME")
         emit('ended', {'cause': 9, 'winner': True, 'result': "1-0"}, room=message['match'])
-        match.finish_match()
-
+        match.finish_match(1, True)
     else:
         print("FALSE ALARM")
         emit('receive_movement', match.pack_data(), room=message['match'])
@@ -284,7 +292,7 @@ def handshake_ack(message):
         out = match.get_outcome()
         if out != None:
             emit('ended', {'cause': out.termination.value, 'winner': out.winner, 'result': out.result()}, room=request.sid)
-            match.finish_match()
+            match.finish_match(out.termination.value, out.winner)
         leave_room(request.sid)
         join_room(message['match'])
         matcher[message['sid']] = {'code':message['match'], 'player':message['player']}
@@ -295,6 +303,9 @@ def handshake_ack(message):
         manager.update(match)
 
         app.logger.info("PLAYER " + match.get_color(message['player']) + " JOINED OKAY")
+    elif code == -4:
+        finish = match.get_finish_cause()
+        emit('ended', {'cause': finish.termination.value, 'winner': out.winner, 'result': out.result()}, room=request.sid)
     else:
         evt = Request(RequestType.ERROR, match.get_name_from_code(message['player']), "ERROR JOINING: INVALID PLAYER CODE")
         match.push_event(evt)
@@ -312,26 +323,39 @@ def connect():
 def report(message):
     try:
         match = manager.get_match(message['match'])
+        match.stop_timer()
         app.logger.info(message['match'] + " " + match.get_color(message['player']) + " REPORTED ILLEGAL")
         evt = Request(RequestType.ILLEGAL, match.get_name_from_code(message['player']))
         app.logger.info(evt.get())
         match.push_event(evt)
         emit('new_event', evt.get_json(), room=accountant.get_cpanel())
+        emit('stop_timer', {}, room=message['match'])
+        app.logger.info("SENT STOP TIMER EVENT")
     except:
+        app.logger.info("ERROR EN REPORT ILLEGAL")
         traceback.print_exc()
 
 @socketio.on('request_admin')
 def admin(message):
     match = manager.get_match(message['match'])
+    match.stop_timer()
     app.logger.info(message['match'] + " " + match.get_color(message['player']) + " REQUESTED ADMIN")
     evt = Request(RequestType.ADMIN, match.get_name_from_code(message['player']))
     match.push_event(evt)
     emit('new_event', evt.get_json(), room=accountant.get_cpanel())
+    emit('stop_timer', {}, room=message['match'])
 
 @socketio.on('request_forfait')
 def forfait(message):
     match = manager.get_match(message['match'])
     app.logger.info(message['match'] + " " + match.get_color(message['player']) + " REQUESTED FORFAIT")
+    if match.get_color(message['player'])=="white":
+        emit('ended', {'cause': 10, 'winner': False, 'result': "0-1"}, room=message['match'])
+        match.finish_match(1, False)
+    elif match.get_color(message['player']=="black"):
+        emit('ended', {'cause': 11, 'winner': True, 'result': "1-0"}, room=message['match'])
+        match.finish_match(1, True)
+
 @socketio.on('request_draw')
 def draw(message):
     match = manager.get_match(message['match'])

@@ -41,6 +41,11 @@ $(document).ready(function(){
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
   });
 
+  socket.on('stop_timer', function(msg, cb) {
+    console.log("STOP THE TIMER!!!");
+    timer_active = false;
+  });
+
   socket.on('unlock', function(msg, cb) {
     console.log('Received unlock order for ' + msg.data);
     if (msg.data === player_team) {
@@ -152,22 +157,28 @@ $(document).ready(function(){
   }, 1000);
 });
 
-var br = {code: "1", key: "&#9820", team: "black_team"};
-var bh = {code: "2", key: "&#9822", team: "black_team"};
-var bb = {code: "3", key: "&#9821", team: "black_team"};
-var bq = {code: "4", key: "&#9819", team: "black_team"};
-var bk = {code: "5", key: "&#9818", team: "black_team"};
-var bp = {code: "6", key: "&#9823", team: "black_team"};
+var br = {code: "1", type: "rook", key: "&#9820", team: "black_team"};
+var bh = {code: "2", type: "knight", key: "&#9822", team: "black_team"};
+var bb = {code: "3", type: "bishop", key: "&#9821", team: "black_team"};
+var bq = {code: "4", type: "queen", key: "&#9819", team: "black_team"};
+var bk = {code: "5", type: "king", key: "&#9818", team: "black_team"};
+var bp = {code: "6", type: "pawn", key: "&#9823", team: "black_team"};
 
-var wr = {code: "8", key: "&#9814", team: "white_team"};
-var wh = {code: "9", key: "&#9816", team: "white_team"};
-var wb = {code: "10", key: "&#9815", team: "white_team"};
-var wq = {code: "11", key: "&#9813", team: "white_team"};
-var wk = {code: "12", key: "&#9812", team: "white_team"};
-var wp = {code: "13", key: "&#9817", team: "white_team"};
+var wr = {code: "8", type: "rook", key: "&#9814", team: "white_team"};
+var wh = {code: "9", type: "knight", key: "&#9816", team: "white_team"};
+var wb = {code: "10", type: "bishop", key: "&#9815", team: "white_team"};
+var wq = {code: "11", type: "queen", key: "&#9813", team: "white_team"};
+var wk = {code: "12", type: "king", key: "&#9812", team: "white_team"};
+var wp = {code: "13", type: "pawn", key: "&#9817", team: "white_team"};
 
-var z = {code: "14", key: "", team: "neutral"};
-var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición", "blancas sin timepo", "negras sin tiempo"];
+var z = {code: "14", type: "empty", key: "", team: "neutral"};
+var ending_translator = ["invalid", "jaque mate", "ahogado",
+                        "material insuficiente", "75 movimientos",
+                        "quíntuple repetición", "50 movimientos",
+                        "triple repetición", "blancas sin timepo",
+                        "negras sin tiempo", "blancas se rinden",
+                        "negras se rinden", "empate", "partida finalizada"];
+
 var crown_translator = {"crown_rook":4, "crown_horse":2, "crown_bishop":3, "crown_queen":5};
 var translator = {"r":br, "n":bh, "b":bb, "q":bq, "k":bk, "p":bp, "R":wr, "N":wh, "B":wb, "Q":wq, "K":wk, "P":wp}
 //var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
@@ -221,19 +232,26 @@ function showModal(title, body, cancellable) {
 function attachButtons() {
   $("#report").click(function() {
     console.log("report clicked!");
+    timer_active = false;
     socket.emit('report_illegal', {sid: sid, match: code, player: player});
   });
   $("#call").click(function() {
     console.log("call clicked!");
+    timer_active = false;
     socket.emit('request_admin', {sid: sid, match: code, player: player});
   });
   $("#end").click(function() {
     console.log("end clicked!");
-    socket.emit('request_forfait', {sid: sid, match: code, player: player});
+    var html = "<button type='button' class='btn-danger' onclick='forfait()'>Rendirse</button>\
+               <button type='button' class='btn-secondary' data-bs-dismiss='modal'>Cancelar</button>";
+    showModal("Rendirse", html, true);
+
   });
   $("#tie").click(function() {
     console.log("tie clicked!");
-    socket.emit('request_draw', {sid: sid, match: code, player: player});
+    var html = "<button type='button' class='btn-danger' onclick='request_draw()'>Solicitar tablas</button>\
+               <button type='button' class='btn-secondary' data-bs-dismiss='modal'>Cancelar</button>";
+    showModal("Solicitar tablas", html, true);
   });
   $(".crown_btn").click(function crown() {
       console.log("CROWN ID: " + crown_translator[this.id]);
@@ -248,6 +266,14 @@ function attachButtons() {
     $('#just-a-modal').modal({ backdrop: 'static' });
     $('#just-a-modal').modal('show');
   });
+}
+
+function forfait() {
+  socket.emit('request_forfait', {sid: sid, match: code, player: player});
+}
+
+function request_draw() {
+  socket.emit('request_draw', {sid: sid, match: code, player: player});
 }
 
 function color(x, y) {
@@ -280,7 +306,7 @@ function generateBoard() {
     for (i = 0; i < 8; i++) {
       appendLimit(9-(i+1));
       for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
       }
       appendLimit(9-(i+1));
     }
@@ -289,18 +315,15 @@ function generateBoard() {
     for (i = 7; i >= 0; i--) {
       appendLimit(9-(i+1));
       for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j+1)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
       }
       appendLimit(9-(i+1));
     }
     generateLimit();
   }
 
-
   $(".piece").mousedown(mouseDown);
   $(".piece").mouseup(mouseUp);
-  var volume = parseInt($(".chessboard").height());
-  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10)-PIECE_SIZE_OFFSET + "px");
 }
 var id;
 
@@ -312,9 +335,9 @@ function mouseDown(e) {
 
     $(".piece").mouseleave(function(e){
       if ($(e.target).hasClass("white")) {
-        $(e.target).css("background-color","#fff");
+        $(e.target).css("background-color","#f0dab5");
       } else {
-        $(e.target).css("background-color","966F33");
+        $(e.target).css("background-color","#b58763");
       }
     });
 
@@ -339,7 +362,6 @@ function checkCrown(down, up) {
 }
 
 function legal(down, up) {
-  console.log("DOWN: " + down.text() + " UP: " + up.text());
   if (up.attr("id") === down.attr("id")) {
     console.log("Same slot!");
     return false;
@@ -348,7 +370,7 @@ function legal(down, up) {
     console.log("Out of board bounds!");
     return false;
   }
-  if (down.text() === "") {
+  if (down.hasClass("empty")) {
     console.log("Selected empty!");
     return false;
   }
@@ -413,21 +435,6 @@ function mouseUp(e) {
   console.log("C: "+current+" T: "+target);
   if (legal($("#"+id), $(e.target))) {
     console.log("LLEGA");
-
-    $(e.target).text($("#"+id).text());
-    $("#"+id).text(z.key);
-
-    if ($(e.target).hasClass(enemy_team)) {
-      $(e.target).removeClass(enemy_team);
-    } else if ($(e.target).hasClass(neutral_team)) {
-      $(e.target).removeClass(neutral_team);
-    }
-    $(e.target).addClass(player_team);
-    $("#"+id).removeClass(player_team);
-    $("#"+id).addClass(neutral_team);
-
-    console.log("UP: "+id);
-
     if (checkCrown($("#"+id), $(e.target))) {
       console.log("CROWN DETECTED");
       $(".crowning :input").attr("disabled", false);
