@@ -360,6 +360,20 @@ def forfait(message):
 def draw(message):
     match = manager.get_match(message['match'])
     app.logger.info(message['match'] + " " + match.get_color(message['player']) + " REQUESTED DRAW")
+    emit('request_draw', {'color': match.get_color(match.get_rival_code(message['player']))}, room=message['match'])
+
+@socketio.on('accept_draw')
+def accept_draw(message):
+    app.logger.info(message['match'] + " ENDED BY DRAW")
+    match = manager.get_match(message['match'])
+    emit('ended', {'cause': 12, 'winner': True, 'result': "1/2-1/2"}, room=message['match'])
+    match.finish_match(1, True, True)
+
+@socketio.on('decline_draw')
+def decline_draw(message):
+    app.logger.info(message['match'] + " DRAW REJECTED")
+    match = manager.get_match(message['match'])
+    emit('draw_declined', {'color': match.get_color(match.get_rival_code(message['player']))}, room=message['match'])
 
 @socketio.on('join_cpanel')
 def join_cpanel():

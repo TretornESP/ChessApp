@@ -14,6 +14,7 @@ var turn;
 var disable_board = false;
 var crown = "none"
 var timer_active = false;
+var deltas = [];
 
 $(document).ready(function(){
   $(".crowning :input").attr("disabled", true);
@@ -85,6 +86,21 @@ $(document).ready(function(){
     $(".log_view").val($(".log_view").val() + msg.data + ", ");
   });
 
+  socket.on('request_draw', function(msg, cb) {
+    if ((msg.color==="white" && player_team==="white_team") || (msg.color==="black" && player_team==="black_team")) {
+      var html = "<button type='button' class='btn-danger' data-bs-dismiss='modal' onclick='accept_draw()'>Aceptar</button>\
+                 <button type='button' class='btn-secondary' data-bs-dismiss='modal' onclick='decline_draw()'>Rechazar</button>";
+      showModal("El rival solicita tablas", html, false);
+    }
+  });
+
+  socket.on('draw_declined', function(msg, cb) {
+    if ((msg.color==="white" && player_team==="white_team") || (msg.color==="black" && player_team==="black_team")) {
+      var html = "<button type='button' class='btn-danger' data-bs-dismiss='modal'>Aceptar</button>";
+      showModal("El rival rechazó las tablas", html, false);
+    }
+  });
+
   socket.on('start_timer', function(msg, cb) {
     timer_active = true;
   });
@@ -98,8 +114,9 @@ $(document).ready(function(){
     //console.log('----------------------');
     //console.log(board);
     var idx = 0;
-
+    var last_board = [...board];
     board = [...empty_board];
+    deltas = [];
 
     for (i = 0; i < msg.data.length; i++) {
       if (msg.data.charAt(i) === '/') {
@@ -108,6 +125,9 @@ $(document).ready(function(){
         idx += parseInt(msg.data.charAt(i));
       } else {
   //      console.log("AT: " + idx + " " + translator[msg.data.charAt(i)]);
+        if (last_board[idx] != translator[msg.data.charAt(i)]) {
+          deltas.push(idx);
+        }
         board[idx++] = translator[msg.data.charAt(i)];
       }
     }
@@ -205,6 +225,13 @@ var board = [
   wr, wh, wb, wq, wk, wb, wh, wr
 ];
 
+function accept_draw() {
+  socket.emit('accept_draw', {sid: sid, match: code, player: player});
+}
+function decline_draw() {
+  socket.emit('decline_draw', {sid: sid, match: code, player: player});
+}
+
 function showTime(white, black) {
   var wminutes = Math.floor(white / 60);
   var wseconds = white - wminutes * 60;
@@ -242,14 +269,14 @@ function attachButtons() {
   });
   $("#end").click(function() {
     console.log("end clicked!");
-    var html = "<button type='button' class='btn-danger' onclick='forfait()'>Rendirse</button>\
+    var html = "<button type='button' class='btn-danger' data-bs-dismiss='modal' onclick='forfait()'>Rendirse</button>\
                <button type='button' class='btn-secondary' data-bs-dismiss='modal'>Cancelar</button>";
     showModal("Rendirse", html, true);
 
   });
   $("#tie").click(function() {
     console.log("tie clicked!");
-    var html = "<button type='button' class='btn-danger' onclick='request_draw()'>Solicitar tablas</button>\
+    var html = "<button type='button' class='btn-danger' data-bs-dismiss='modal' onclick='request_draw()'>Solicitar tablas</button>\
                <button type='button' class='btn-secondary' data-bs-dismiss='modal'>Cancelar</button>";
     showModal("Solicitar tablas", html, true);
   });
@@ -288,38 +315,55 @@ function appendLimit(input) {
   $( ".chessboard" ).append("<div class =\"limit\">"+input+"</div>");
 }
 
-function generateLimit() {
-  appendLimit("");
-  for (i = 0; i < 8; i++) {
-      appendLimit(String.fromCharCode(97+i));
+function generateLimit(team) {
+  if (team) {
+    appendLimit("");
+    for (i = 0; i < 8; i++) {
+        appendLimit(String.fromCharCode(97+i));
+    }
+    appendLimit("");
+  } else {
+    appendLimit("");
+    for (i = 7; i >= 0; i--) {
+        appendLimit(String.fromCharCode(97+i));
+    }
+    appendLimit("");
   }
-  appendLimit("");
 }
 
 function generateBoard() {
   $( ".chessboard" ).empty();
   $( ".chessboard" ).css('width', $( ".chessboard" ).height());
   console.log("SIZE: " + $( ".chessboard" ).height());
-  generateLimit();
 
   if (player_team === "white_team") {
+    generateLimit(true);
     for (i = 0; i < 8; i++) {
       appendLimit(9-(i+1));
       for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+        if (deltas.includes(i*8+j)) {
+          $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece last "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+        } else {
+          $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+        }
       }
       appendLimit(9-(i+1));
     }
-    generateLimit();
+    generateLimit(true);
   } else {
+    generateLimit(false);
     for (i = 7; i >= 0; i--) {
       appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j+1)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+      for (j = 7; j >= 0; j--) {
+        if (deltas.includes(i*8+j)) {
+          $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece last "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+        } else {
+          $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+        }
       }
       appendLimit(9-(i+1));
     }
-    generateLimit();
+    generateLimit(false);
   }
 
   $(".piece").mousedown(mouseDown);

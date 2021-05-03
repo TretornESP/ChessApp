@@ -122,11 +122,16 @@ class Match():
     def get_finish_cause_serializable(self):
         if self.finish_cause==None:
             return ""
+        if self.finish_cause=="draw":
+            return "draw"
         return {'endcause': self.finish_cause.termination.value, 'endwinner': self.finish_cause.winner, 'endstr': self.finish_cause.str()}
     def get_finish_cause(self):
         return self.finish_cause
-    def finish_match(self, cause, winner):
-        self.finish_cause = chess.Outcome(chess.Termination(cause), winner)
+    def finish_match(self, cause, winner, draw=False):
+        if draw:
+            self.finish_cause = "draw"
+        else:
+            self.finish_cause = chess.Outcome(chess.Termination(cause), winner)
         self.started = False
         self.kill = True
         self.finished = True

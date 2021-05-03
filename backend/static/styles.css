@@ -118,6 +118,17 @@
   border-radius: 50%;
 }
 
+.last {
+    position: relative;
+    float: left;
+    width: 10%;
+    height: 10%;
+    background-color: #BBB;
+    font-size:5rem;
+    text-align:center;
+    display: table-cell;
+    vertical-align:middle;
+}
 
 .black {
     position: relative;
