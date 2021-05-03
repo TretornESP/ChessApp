@@ -65,6 +65,16 @@ def join_match(code, player):
     finally:
         return resp
 
+@app.route('/temporal/links/')
+def get_links_end():
+    return make_response(render_template('Theme/viewlinks.html', links=[]))
+
+@app.route('/temporal/links/<code>')
+def get_links(code):
+    mtch = accountant.get_links_by_name(code)
+    app.logger.info("FOUND: " + str(len(mtch)) + " LINKS FOR " + code)
+    return make_response(render_template('Theme/viewlinks.html', links=mtch))
+
 @app.route('/match/<code>/')
 def get_board(code):
     try:

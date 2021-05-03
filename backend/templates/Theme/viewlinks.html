@@ -7,7 +7,7 @@
     <meta name="author" content="Dashboard">
     <meta name="keyword" content="Dashboard, Bootstrap, Admin, Template, Theme, Responsive, Fluid, Retina">
 
-    <title>Openchess</title>
+    <title>Links</title>
 
     <!-- Bootstrap core CSS -->
     <link href="{{ url_for('static', filename='assets/css/bootstrap.css')}}" rel="stylesheet">
@@ -40,8 +40,6 @@
             <a href="index.html" class="logo"><b>OPENCHESS</b></a>
             <!--logo end-->
             <div class="top-menu">
-            	<ul class="nav pull-right top-menu">
-            	</ul>
             </div>
         </header>
       <!--header end-->
@@ -52,55 +50,6 @@
       <!--sidebar start-->
       <aside>
           <div id="sidebar"  class="nav-collapse ">
-              <!-- sidebar menu start-->
-              <ul class="sidebar-menu" id="nav-accordion">
-
-              	  <p class="centered"><a href="profile.html"><img src="{{ url_for('static', filename='assets/img/ui-sam.jpg')}}" class="img-circle" width="60"></a></p>
-              	  <h5 class="centered">Openchess Admin</h5>
-
-                  <li class="mt">
-                      <a href="{{url_for('admin_pane')}}">
-                          <i class="fa fa-dashboard"></i>
-                          <span>Resumen</span>
-                      </a>
-                  </li>
-
-                  <li class=" sub-menu">
-                      <a  class="active" href="javascript:;" >
-                          <i class="fa fa-desktop"></i>
-                          <span>Partidas</span>
-                      </a>
-                      <ul class="sub">
-                          <li><a href="{{url_for('new')}}">Nueva partida</a></li>
-                      </ul>
-                      <ul class="sub">
-                          <li><a  href="{{url_for('get_matches')}}">Ver partidas</a></li>
-                      </ul>
-                      <ul class="sub">
-                          <li><a  href="{{url_for('remove_all')}}">Eliminar todas las partidas</a></li>
-                      </ul>
-                  </li>
-
-                  <li class="sub-menu">
-                      <a href="javascript:;" >
-                          <i class="fa fa-cogs"></i>
-                          <span>Incidencias</span>
-                      </a>
-                      <ul class="sub">
-                          <li><a  href="{{url_for('get_events')}}">Ver incidencias</a></li>
-                      </ul>
-                  </li>
-                  <li class="sub-menu">
-                      <a href="javascript:;" >
-                          <i class="fa fa-book"></i>
-                          <span>Resultados</span>
-                      </a>
-                      <ul class="sub">
-                          <li><a  href="#resultados">Ver resultados</a></li>
-                      </ul>
-                  </li>
-              </ul>
-              <!-- sidebar menu end-->
           </div>
       </aside>
       <!--sidebar end-->
@@ -111,55 +60,30 @@
       <!--main content start-->
       <section id="main-content">
           <section class="wrapper">
-          	<h3><i class="fa fa-angle-right"></i> Nueva Partida</h3>
-
-          	<div class="row mt">
-          		<div class="col-lg-12">
-          			<div class="form-panel">
-                  	  <h4 class="mb"><i class="fa fa-angle-right"></i> Datos de partida</h4>
-                      <form class="form-inline" role="form">
-                          <div class="form-group">
-                              <label class="sr-only" for="jugador-blancas">Quien juega blancas</label>
-                              <input type="text" class="form-control" id="jugador-blancas" placeholder="Blancas" value="Blancas">
-                              <label class="sr-only" for="jugador-negras">Quien juega negras</label>
-                              <input type="text" class="form-control" id="jugador-negras" placeholder="Negras" value="Negras">
-                          </div>
-                          <div class="form-group">
-                            <label class="sr-only" for="tiempo-blancas">Tiempo de blancas</label>
-                            <input type="number" class="form-control" id="tiempo-blancas" placeholder="300" value="300">
-                            <label class="sr-only" for="tiempo-negras">Tiempo de negras</label>
-                            <input type="number" class="form-control" id="tiempo-negras" placeholder="300" value="300">
-                          </div>
-                          <div class="form-group">
-                            <label class="sr-only" for="incremento-blancas">Incremento de blancas</label>
-                            <input type="number" class="form-control" id="incremento-blancas" placeholder="0" value="0">
-                            <label class="sr-only" for="incremento-negras">Incremento de negras</label>
-                            <input type="number" class="form-control" id="incremento-negras" placeholder="0" value="0">
-                          </div>
-                      </form>
-                      <button id="crear-partida" class="btn btn-theme">Crear</button>
-
-          			</div><!-- /form-panel -->
-          		</div><!-- /col-lg-12 -->
-          	</div><!-- /row -->
-
             <div class="row mt">
               <div class="col-lg-12">
               	<div class="form-panel">
-              	  <h4 class="mb"><i class="fa fa-angle-right"></i> Enlaces</h4>
+                  <div class="h-100">
+                    <div class="d-flex justify-content-center h-100">
+                      <div class="searchbar">
+                        <input id="search_text" class="search_input" type="text" name="" placeholder="Buscar...">
+                        <a id="search_button" href="#" class="search_icon"><i class="fas fa-search"></i></a>
+                      </div>
+                    </div>
+                  </div>
+              	  <h4 class="mb"><i class="fa fa-angle-right"></i>Partidas disponibles</h4>
                   <table id="resultados" class="table table-bordered table-striped table-condensed">
                                 <thead>
                                 <tr>
-                                    <th>Codigo</th>
-                                    <th>Nombre Blancas</th>
-                                    <th>Blancas</th>
-                                    <th>Nombre Negras</th>
-                                    <th>Negras</th>
-                                    <th>Admin</th>
-                                    <th>Espectador</th>
+                                  <th>Enlaces</th>
                                 </tr>
                                 </thead>
                                 <tbody>
+                                  {% for link in links %}
+                                  <tr>
+                                  <td><a href="{{link}}" target="_blank">{{link}}</a></td>
+                                  </tr>
+                                  {% endfor %}
                                 </tbody>
                   </table>
                 </div><!-- /form-panel -->
@@ -181,7 +105,6 @@
 
     <!--common script for all pages-->
     <script src="{{ url_for('static', filename='assets/js/common-scripts.js')}}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='assets/js/creator.js')}}"></script>
 
     <!--script for this page-->
     <script src="{{ url_for('static', filename='assets/js/jquery-ui-1.9.2.custom.min.js')}}"></script>
@@ -202,7 +125,9 @@
 	<script src="{{ url_for('static', filename='assets/js/form-component.js')}}"></script>
 
   <script type="application/javascript">
-
+    $("#search_button").click(function() {
+      window.location.href = "http://"+window.location.host+"/temporal/links/"+$("#search_text").val();
+    });
   </script>
 
   </body>

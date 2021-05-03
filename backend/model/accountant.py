@@ -91,6 +91,14 @@ class Accountant():
         for obj in list:
             res.append(self.manager.get_match(obj).get_reduced_status())
         return res
+    def get_links_by_name(self, name):
+        res = []
+        list = self.manager.get_all_matches()
+        for obj in list:
+            result = self.manager.get_match(obj).get_link_by_name(name)
+            if result!=None:
+                res.append(result)
+        return res
     def get_incidences_strings(self):
         res = []
         list = self.manager.get_all_matches()
