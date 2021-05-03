@@ -7,7 +7,7 @@ from datetime import datetime
 from .request import Request, RequestType
 
 class Match():
-    def __init__(self, server_config, white_name, black_name, white_time=300, black_time=300, map=chess.Board()):
+    def __init__(self, server_config, white_name, black_name, white_time=300, black_time=300, white_increment=0, black_increment=0, map=chess.Board()):
         print("CREATING MATCH!!!!")
         self.server_config = server_config
         self.white_name = white_name if white_name!=None else ""
@@ -21,10 +21,12 @@ class Match():
         self.white_sid = None
         self.black_sid = None
         self.admin_sid = None
-        self.initial_white_time = white_time
-        self.initial_black_time = black_time
-        self.white_time = white_time
-        self.black_time = black_time
+        self.initial_white_time = int(white_time)
+        self.initial_black_time = int(black_time)
+        self.white_time = int(white_time)
+        self.black_time = int(black_time)
+        self.white_increment = int(white_increment)
+        self.black_increment = int(black_increment)
         self.map = map
         self.timer = threading.Timer(1, self.time)
         self.kill = True
@@ -349,8 +351,10 @@ class Match():
         if chess_move in self.map.legal_moves:
             m = self.map.san(chess_move)
             if self.map.turn:
+                self.white_time += self.white_increment
                 print('whites moved: ' + m)
             else:
+                self.black_time += self.black_increment
                 print('blacks moved: ' + m)
             self.map.push(chess_move)
             return m

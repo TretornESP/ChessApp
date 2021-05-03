@@ -120,12 +120,22 @@
                   	  <h4 class="mb"><i class="fa fa-angle-right"></i> Datos de partida</h4>
                       <form class="form-inline" role="form">
                           <div class="form-group">
-                              <label class="sr-only" for="exampleInputEmail2">Quien juega blancas</label>
-                              <input type="username" class="form-control" id="jugador-blancas" placeholder="Blancas">
+                              <label class="sr-only" for="jugador-blancas">Quien juega blancas</label>
+                              <input type="text" class="form-control" id="jugador-blancas" placeholder="Blancas" value="Blancas">
+                              <label class="sr-only" for="jugador-negras">Quien juega negras</label>
+                              <input type="text" class="form-control" id="jugador-negras" placeholder="Negras" value="Negras">
                           </div>
                           <div class="form-group">
-                              <label class="sr-only" for="exampleInputPassword2">Quien juega negras</label>
-                              <input type="username" class="form-control" id="jugador-negras" placeholder="Negras">
+                            <label class="sr-only" for="tiempo-blancas">Tiempo de blancas</label>
+                            <input type="number" class="form-control" id="tiempo-blancas" placeholder="300" value="300">
+                            <label class="sr-only" for="tiempo-negras">Tiempo de negras</label>
+                            <input type="number" class="form-control" id="tiempo-negras" placeholder="300" value="300">
+                          </div>
+                          <div class="form-group">
+                            <label class="sr-only" for="incremento-blancas">Incremento de blancas</label>
+                            <input type="number" class="form-control" id="incremento-blancas" placeholder="0" value="0">
+                            <label class="sr-only" for="incremento-negras">Incremento de negras</label>
+                            <input type="number" class="form-control" id="incremento-negras" placeholder="0" value="0">
                           </div>
                       </form>
                       <button id="crear-partida" class="btn btn-theme">Crear</button>

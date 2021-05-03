@@ -19,10 +19,14 @@ $(document).ready(function () {
     );
   });
 
-  
+
 
   $("#crear-partida").click(function() {
     console.log("CREANDO PARTIDA");
-    socket.emit('create-match', {whites: $("#jugador-blancas").val(), blacks: $("#jugador-negras").val()});
+    socket.emit('create-match', {
+      whites: $("#jugador-blancas").val(), blacks: $("#jugador-negras").val(),
+      wt: $("#tiempo-blancas").val(), bt: $("#tiempo-negras").val(),
+      wi: $("#incremento-blancas").val(), bi: $("#incremento-negras").val()
+    });
   });
 });

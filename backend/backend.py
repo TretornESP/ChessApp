@@ -410,6 +410,6 @@ def request_finished():
 @socketio.on('create-match')
 def create_match(message):
     app.logger.info("TRYING TO CREATE A NEW MATCH")
-    match = Match(server_config, message['whites'], message['blacks'])
+    match = Match(server_config, message['whites'], message['blacks'], message['wt'], message['bt'], message['wi'], message['bi'])
     manager.add(match)
     emit('receive-new-match', match.get_reduced_status(), room=accountant.get_cpanel())
