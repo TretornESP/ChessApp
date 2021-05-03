@@ -2,25 +2,17 @@
   overflow-y: scroll;
   overflow-x: scroll;
   width: 100%;
-  height: 20%;
   resize: none; /* Remove this if you want the user to resize the textarea */
 }
 
 .heading {
-  width: 100%;
-  height: 10%;
 }
 
-.viewer-chessboard {
-  display: inline-block;
-  height: 100%;
-  border: 0px solid #AAA;
-  background-color: #AAA;
-}
+
 
 .chessboard {
   display: inline-block;
-  height: 100%;
+  height: 60%;
   border: 0px solid #AAA;
   background-color: #AAA;
 }
@@ -52,24 +44,20 @@
 }
 
 .actions {
-  width: 100%;
-  height: 5%;
   background-color: #AAA;
-  border: 20vw solid #AAA;
 }
 
 .rounded {
-  font-size: 50vw;
-  border-radius: 6vw;
-  background-color: #BBB;
+  background-color: #FFF;
+  font-weight: bold;
+  font-size: 25px;
+
+  border-radius: 2px;
 }
 
 .crowning {
   text-align: center;
-  width: 100%;
-  height: 10%;
   background-color: #AAA;
-  border: 20vw solid #AAA;
 }
 
 .buttons {
@@ -88,26 +76,22 @@
 
 
 .clock-edit {
-  height: 8%;
-  width: 100%;
+
 }
 
 .clock {
   background-color: #AAA;
   text-align: center;
-  height: 8%;
-  width: 100%;
+  font-size: 2vw;
 }
 
 
 .clock-edit span {
   font-weight: bold;
-  font-size: 30vw;
 }
 
 .clock span {
   font-weight: bold;
-  font-size: 30vw;
 }
 
 .blinking {
@@ -122,18 +106,30 @@
 
 .white-dot {
   display: inline-block;
-  height: 25vw;
-  width: 25vw;
+  width: 2vw;
+  height: 2vw;
   background-color: #FFF;
   border-radius: 50%;
 }
 
 .black-dot {
   display: inline-block;
-  height: 25vw;
-  width: 25vw;
+  width: 2vw;
+  height: 2vw;
   background-color: #000;
   border-radius: 50%;
+}
+
+.last {
+    position: relative;
+    float: left;
+    width: 10%;
+    height: 10%;
+    background-color: #BBB;
+    font-size:5rem;
+    text-align:center;
+    display: table-cell;
+    vertical-align:middle;
 }
 
 .black {
@@ -141,7 +137,7 @@
     float: left;
     width: 10%;
     height: 10%;
-    background-color: 966F33;
+    background-color: #b58763;
     font-size:5rem;
     text-align:center;
     display: table-cell;
@@ -152,7 +148,7 @@
     float: left;
     width: 10%;
     height: 10%;
-    background-color: #fff;
+    background-color: #f0dab5;
     font-size:5rem;
     text-align:center;
     display: table-cell;
@@ -163,11 +159,10 @@
     float: left;
     width: 10%;
     height: 10%;
+    font-size: 1vw;
     background-color: #bbb;
-    font-size:5rem;
     text-align:center;
     display: table-cell;
-    vertical-align:middle;
 }
 
 *.hidden {

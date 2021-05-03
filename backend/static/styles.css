@@ -8,6 +8,13 @@
 .heading {
 }
 
+.viewer-chessboard {
+  display: inline-block;
+  height: 100%;
+  border: 0px solid #AAA;
+  background-color: #AAA;
+}
+
 .chessboard {
   display: inline-block;
   height: 60%;

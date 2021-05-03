@@ -14,6 +14,8 @@ var turn;
 var disable_board = false;
 var crown = "none"
 var timer_active = false;
+var deltas = [];
+var id;
 
 $(document).ready(function(){
   $(".crowning :input").attr("disabled", true);
@@ -38,6 +40,11 @@ $(document).ready(function(){
 
   socket.on('disconnect', function() {
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
+  });
+
+  socket.on('stop_timer', function(msg, cb) {
+    console.log("STOP THE TIMER!!!");
+    timer_active = false;
   });
 
   socket.on('unlock', function(msg, cb) {
@@ -85,15 +92,16 @@ $(document).ready(function(){
 
   socket.on('receive_movement', function(msg, cb) {
     console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
-    timer_active = msg.start_timer;
 
+    timer_active = msg.start_timer;
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
     //console.log(board);
     var idx = 0;
-
+    var last_board = [...board];
     board = [...empty_board];
+    deltas = [];
 
     for (i = 0; i < msg.data.length; i++) {
       if (msg.data.charAt(i) === '/') {
@@ -102,6 +110,9 @@ $(document).ready(function(){
         idx += parseInt(msg.data.charAt(i));
       } else {
   //      console.log("AT: " + idx + " " + translator[msg.data.charAt(i)]);
+        if (last_board[idx] != translator[msg.data.charAt(i)]) {
+          deltas.push(idx);
+        }
         board[idx++] = translator[msg.data.charAt(i)];
       }
     }
@@ -126,7 +137,7 @@ $(document).ready(function(){
 
     seconds--;
 
-    if ((seconds+minutes) <= 0) {
+    if (minutes < 0) {
       console.log("TIMES UP!!");
       socket.emit('times_up', {sid: sid, match: code, player: player});
     }
@@ -144,29 +155,43 @@ $(document).ready(function(){
       }
     }
 
+    if (minutes < 10) {
+      m.text("0"+minutes.toString());
+    } else {
+      m.text(minutes.toString());
+    }
 
-    m.text(minutes.toString());
-    s.text(seconds.toString());
+    if (seconds < 10 ) {
+      s.text("0"+seconds.toString());
+    } else {
+      s.text(seconds.toString());
+    }
 
   }, 1000);
 });
 
-var br = {code: "1", key: "&#9820", team: "black_team"};
-var bh = {code: "2", key: "&#9822", team: "black_team"};
-var bb = {code: "3", key: "&#9821", team: "black_team"};
-var bq = {code: "4", key: "&#9819", team: "black_team"};
-var bk = {code: "5", key: "&#9818", team: "black_team"};
-var bp = {code: "6", key: "&#9823", team: "black_team"};
+var br = {code: "1", type: "rook", key: "&#9820", team: "black_team"};
+var bh = {code: "2", type: "knight", key: "&#9822", team: "black_team"};
+var bb = {code: "3", type: "bishop", key: "&#9821", team: "black_team"};
+var bq = {code: "4", type: "queen", key: "&#9819", team: "black_team"};
+var bk = {code: "5", type: "king", key: "&#9818", team: "black_team"};
+var bp = {code: "6", type: "pawn", key: "&#9823", team: "black_team"};
 
-var wr = {code: "8", key: "&#9814", team: "white_team"};
-var wh = {code: "9", key: "&#9816", team: "white_team"};
-var wb = {code: "10", key: "&#9815", team: "white_team"};
-var wq = {code: "11", key: "&#9813", team: "white_team"};
-var wk = {code: "12", key: "&#9812", team: "white_team"};
-var wp = {code: "13", key: "&#9817", team: "white_team"};
+var wr = {code: "8", type: "rook", key: "&#9814", team: "white_team"};
+var wh = {code: "9", type: "knight", key: "&#9816", team: "white_team"};
+var wb = {code: "10", type: "bishop", key: "&#9815", team: "white_team"};
+var wq = {code: "11", type: "queen", key: "&#9813", team: "white_team"};
+var wk = {code: "12", type: "king", key: "&#9812", team: "white_team"};
+var wp = {code: "13", type: "pawn", key: "&#9817", team: "white_team"};
 
-var z = {code: "14", key: "", team: "neutral"};
-var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición", "blancas sin timepo", "negras sin tiempo"];
+var z = {code: "14", type: "empty", key: "", team: "neutral"};
+var ending_translator = ["invalid", "jaque mate", "ahogado",
+                        "material insuficiente", "75 movimientos",
+                        "quíntuple repetición", "50 movimientos",
+                        "triple repetición", "blancas sin timepo",
+                        "negras sin tiempo", "blancas se rinden",
+                        "negras se rinden", "empate", "partida finalizada"];
+
 var crown_translator = {"crown_rook":4, "crown_horse":2, "crown_bishop":3, "crown_queen":5};
 var translator = {"r":br, "n":bh, "b":bb, "q":bq, "k":bk, "p":bp, "R":wr, "N":wh, "B":wb, "Q":wq, "K":wk, "P":wp}
 //var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
@@ -243,30 +268,21 @@ function generateBoard() {
   console.log("SIZE: " + $( ".chessboard" ).height());
   generateLimit();
 
-  if (player_team === "white_team") {
-    for (i = 0; i < 8; i++) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+  for (i = 0; i < 8; i++) {
+    appendLimit(9-(i+1));
+    for (j = 0; j < 8; j++) {
+      if (deltas.includes(i*8+j)) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece last "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+      } else {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
       }
-      appendLimit(9-(i+1));
     }
-    generateLimit();
-  } else {
-    for (i = 7; i >= 0; i--) {
-      appendLimit(9-(i+1));
-      for (j = 0; j < 8; j++) {
-        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
-      }
-      appendLimit(9-(i+1));
-    }
-    generateLimit();
+    appendLimit(9-(i+1));
   }
+  generateLimit();
+  $(".audio")[0].play();
 
-  var volume = parseInt($(".chessboard").height());
-  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10) + "px");
 }
-var id;
 
 function linear_to_coords(linear) {
   var row = Math.floor(linear / 8);

@@ -15,6 +15,7 @@ var disable_board = false;
 var crown = "none"
 var timer_active = false;
 var deltas = [];
+var id;
 
 $(document).ready(function(){
   $(".crowning :input").attr("disabled", true);
@@ -170,9 +171,17 @@ $(document).ready(function(){
       }
     }
 
+    if (minutes < 10) {
+      m.text("0"+minutes.toString());
+    } else {
+      m.text(minutes.toString());
+    }
 
-    m.text(minutes.toString());
-    s.text(seconds.toString());
+    if (seconds < 10 ) {
+      s.text("0"+seconds.toString());
+    } else {
+      s.text(seconds.toString());
+    }
 
   }, 1000);
 });
@@ -366,10 +375,10 @@ function generateBoard() {
     generateLimit(false);
   }
 
+  $(".audio")[0].play();
   $(".piece").mousedown(mouseDown);
   $(".piece").mouseup(mouseUp);
 }
-var id;
 
 function mouseDown(e) {
     if (disable_board) return;

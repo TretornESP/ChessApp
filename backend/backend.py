@@ -305,7 +305,10 @@ def handshake_ack(message):
         app.logger.info("PLAYER " + match.get_color(message['player']) + " JOINED OKAY")
     elif code == -4:
         finish = match.get_finish_cause()
-        emit('ended', {'cause': finish.termination.value, 'winner': out.winner, 'result': out.result()}, room=request.sid)
+        if finish=="draw":
+            emit('ended', {'cause': 12, 'winer': "draw", 'result': "1/2-1/2"}, room=request.sid)
+        else:
+            emit('ended', {'cause': finish.termination.value, 'winner': finish.termination.winner, 'result': finish.termination.result()}, room=request.sid)
     else:
         evt = Request(RequestType.ERROR, match.get_name_from_code(message['player']), "ERROR JOINING: INVALID PLAYER CODE")
         match.push_event(evt)

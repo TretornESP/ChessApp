@@ -27,7 +27,8 @@ $(document).ready(function () {
     $("#partidas").empty();
     var str;
     msg.found.forEach(function(valor, indice, array) {
-      str = match_text.replace("%link%", "<iframe src='" + valor.viewers_link + "' title='match' allowfullscreen></iframe>");
+      //str = match_text.replace("%link%", "<iframe src='" + valor.viewers_link + "' title='match' allowfullscreen></iframe>");
+      str = match_text.replace("%link%", "Preview not available right now");
       str = str.replace("%whites%", valor.whites_name);
       str = str.replace("%blacks%", valor.blacks_name);
       str = str.replace("%wclock%", valor.whites_clock);

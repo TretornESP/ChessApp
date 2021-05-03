@@ -15,7 +15,9 @@ var disable_board = false;
 var crown = "none"
 var timer_active = false;
 var timeout;
+var deltas = [];
 var speed = 500;
+var id;
 
 var time_modal = '\
 <div class="time-edit clock-edit">\
@@ -50,6 +52,11 @@ $(document).ready(function(){
 
   socket.on('disconnect', function() {
     socket.emit('my_event', {match: code, player: player, data: "Disconnected"});
+  });
+
+  socket.on('stop_timer', function(msg, cb) {
+    console.log("STOP THE TIMER!!!");
+    timer_active = false;
   });
 
   socket.on('my_response', function(msg, cb) {
@@ -87,16 +94,17 @@ $(document).ready(function(){
   });
 
   socket.on('receive_movement', function(msg, cb) {
-    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timer + " " + msg.start_timer);
-    timer_active = msg.start_timer;
+    console.log(msg.turn + " " + msg.data + " " + msg.whites_timer + " " + msg.blacks_timerm + " " + msg.start_timer);
 
+    timer_active = msg.start_timer;
     turn = msg.turn;
     //console.log('Received #' + msg.count + ': ' + msg.data);
     //console.log('----------------------');
     //console.log(board);
     var idx = 0;
-
+    var last_board = [...board];
     board = [...empty_board];
+    deltas = [];
 
     for (i = 0; i < msg.data.length; i++) {
       if (msg.data.charAt(i) === '/') {
@@ -105,6 +113,9 @@ $(document).ready(function(){
         idx += parseInt(msg.data.charAt(i));
       } else {
   //      console.log("AT: " + idx + " " + translator[msg.data.charAt(i)]);
+        if (last_board[idx] != translator[msg.data.charAt(i)]) {
+          deltas.push(idx);
+        }
         board[idx++] = translator[msg.data.charAt(i)];
       }
     }
@@ -138,7 +149,7 @@ $(document).ready(function(){
       minutes--;
       if (minutes <= 0) {
         console.log("TIMES UP!!");
-      //  socket.emit('times_up', {sid: sid, match: code, player: player});
+        socket.emit('times_up', {sid: sid, match: code, player: player});
         m.text("0");
         s.text("0");
         timer_active = false;
@@ -147,29 +158,43 @@ $(document).ready(function(){
       }
     }
 
+    if (minutes < 10) {
+      m.text("0"+minutes.toString());
+    } else {
+      m.text(minutes.toString());
+    }
 
-    m.text(minutes.toString());
-    s.text(seconds.toString());
+    if (seconds < 10 ) {
+      s.text("0"+seconds.toString());
+    } else {
+      s.text(seconds.toString());
+    }
 
   }, 1000);
 });
 
-var br = {code: "1", key: "&#9820", team: "black_team"};
-var bh = {code: "2", key: "&#9822", team: "black_team"};
-var bb = {code: "3", key: "&#9821", team: "black_team"};
-var bq = {code: "4", key: "&#9819", team: "black_team"};
-var bk = {code: "5", key: "&#9818", team: "black_team"};
-var bp = {code: "6", key: "&#9823", team: "black_team"};
+var br = {code: "1", type: "rook", key: "&#9820", team: "black_team"};
+var bh = {code: "2", type: "knight", key: "&#9822", team: "black_team"};
+var bb = {code: "3", type: "bishop", key: "&#9821", team: "black_team"};
+var bq = {code: "4", type: "queen", key: "&#9819", team: "black_team"};
+var bk = {code: "5", type: "king", key: "&#9818", team: "black_team"};
+var bp = {code: "6", type: "pawn", key: "&#9823", team: "black_team"};
 
-var wr = {code: "8", key: "&#9814", team: "white_team"};
-var wh = {code: "9", key: "&#9816", team: "white_team"};
-var wb = {code: "10", key: "&#9815", team: "white_team"};
-var wq = {code: "11", key: "&#9813", team: "white_team"};
-var wk = {code: "12", key: "&#9812", team: "white_team"};
-var wp = {code: "13", key: "&#9817", team: "white_team"};
+var wr = {code: "8", type: "rook", key: "&#9814", team: "white_team"};
+var wh = {code: "9", type: "knight", key: "&#9816", team: "white_team"};
+var wb = {code: "10", type: "bishop", key: "&#9815", team: "white_team"};
+var wq = {code: "11", type: "queen", key: "&#9813", team: "white_team"};
+var wk = {code: "12", type: "king", key: "&#9812", team: "white_team"};
+var wp = {code: "13", type: "pawn", key: "&#9817", team: "white_team"};
 
-var z = {code: "14", key: "", team: "neutral"};
-var ending_translator = ["invalid", "jaque mate", "ahogado", "material insuficiente", "75 movimientos", "quíntuple repetición", "50 movimientos", "triple repetición", "blancas sin timepo", "negras sin tiempo"];
+var z = {code: "14", type: "empty", key: "", team: "neutral"};
+var ending_translator = ["invalid", "jaque mate", "ahogado",
+                        "material insuficiente", "75 movimientos",
+                        "quíntuple repetición", "50 movimientos",
+                        "triple repetición", "blancas sin timepo",
+                        "negras sin tiempo", "blancas se rinden",
+                        "negras se rinden", "empate", "partida finalizada"];
+
 var crown_translator = {"crown_rook":4, "crown_horse":2, "crown_bishop":3, "crown_queen":5};
 var translator = {"r":br, "n":bh, "b":bb, "q":bq, "k":bk, "p":bp, "R":wr, "N":wh, "B":wb, "Q":wq, "K":wk, "P":wp}
 //var translator = [br, bh, bb, bq, bk, bp, z, wr, wh, wb, wq, wk, wp];
@@ -388,19 +413,23 @@ function generateBoard() {
   for (i = 0; i < 8; i++) {
     appendLimit(9-(i+1));
     for (j = 0; j < 8; j++) {
-      $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+"\">"+board[i*8+j].key+"</div>");
+      console.log("board["+(i*8+j)+"] " + board[i*8+j].code);
+
+      if (deltas.includes(i*8+j)) {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece last "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+      } else {
+        $( ".chessboard" ).append("<div id=\""+(i*8+j)+"\" class =\"piece "+color(i,j)+" "+board[i*8+j].code+" "+board[i*8+j].team+" "+board[i*8+j].type+"\"></div>");
+      }
     }
     appendLimit(9-(i+1));
   }
   generateLimit();
 
 
+  $(".audio")[0].play();
   $(".piece").mousedown(mouseDown);
   $(".piece").mouseup(mouseUp);
-  var volume = parseInt($(".chessboard").height());
-  $(".black, .white, .limit").css('font-size', Math.ceil(volume/10)-PIECE_SIZE_OFFSET + "px");
 }
-var id;
 
 function mouseDown(e) {
     if (disable_board) return;
@@ -410,9 +439,9 @@ function mouseDown(e) {
 
     $(".piece").mouseleave(function(e){
       if ($(e.target).hasClass("white")) {
-        $(e.target).css("background-color","#fff");
+        $(e.target).css("background-color","#f0dab5");
       } else {
-        $(e.target).css("background-color","966F33");
+        $(e.target).css("background-color","#b58763");
       }
     });
 
@@ -437,7 +466,6 @@ function checkCrown(down, up) {
 }
 
 function legal(down, up) {
-  console.log("DOWN: " + down.text() + " UP: " + up.text());
   if (up.attr("id") === down.attr("id")) {
     console.log("Same slot!");
     return false;
@@ -446,7 +474,7 @@ function legal(down, up) {
     console.log("Out of board bounds!");
     return false;
   }
-  if (down.text() === "") {
+  if (down.hasClass("empty")) {
     console.log("Selected empty!");
     return false;
   }
@@ -484,34 +512,6 @@ function readCookie(name) {
 //function generate_move_url(code) {
 //  return window.location.protocol + "//" + window.location.host + "/match/" + code + "/move";
 //}
-
-function legal(down, up) {
-  console.log("DOWN: " + down.text() + " UP: " + up.text());
-  if (up.attr("id") === down.attr("id")) {
-    console.log("Same slot!");
-    return false;
-  }
-  if (!down.hasClass("piece") || !up.hasClass("piece")) {
-    console.log("Out of board bounds!");
-    return false;
-  }
-  if (down.text() === "") {
-    console.log("Selected empty!");
-    return false;
-  }
-  //CAMBIAME
-  /*
-  if (up.hasClass(player_team)) {
-    console.log("Over an ally!");
-    return false;
-  }
-  if (down.hasClass(enemy_team)) {
-    console.log("Moving an enemy");
-    return false;
-  }
-  */
-  return true;
-}
 
 function set_players() {
   code = readCookie('match');
