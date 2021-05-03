@@ -43,7 +43,7 @@ class Accountant():
         list = self.manager.get_all_matches()
         for obj in list:
             match = self.manager.get_match(obj)
-            if match.get_outcome() != None or match.has_finished():
+            if match.get_outcome() != None:
                 res.append(
                     {
                         'codigo': match.get_code(),
@@ -54,13 +54,32 @@ class Accountant():
                         'hora_fin': match.get_finish_time()
                     }
                 )
-            if match.match_end_time()!=0:
+            elif match.match_end_time()!=0:
                 res.append(
                     {
                         'codigo': match.get_code(),
                         'blancas': match.get_white_name(),
                         'negras': match.get_black_name(),
                         'ganador': "blancas" if match.match_end_time()==2 else "negras",
+                        'hora_inicio': match.get_start_time(),
+                        'hora_fin': match.get_finish_time()
+                    }
+                )
+            elif match.has_finished():
+                cause = match.get_finish_cause()
+                if cause=="draw":
+                    ganador = "empate"
+                elif cause=="":
+                    continue
+                else:
+                    ganador = "blancas" if cause.winner else "negras"
+
+                res.append(
+                    {
+                        'codigo': match.get_code(),
+                        'blancas': match.get_white_name(),
+                        'negras': match.get_black_name(),
+                        'ganador': ganador,
                         'hora_inicio': match.get_start_time(),
                         'hora_fin': match.get_finish_time()
                     }
